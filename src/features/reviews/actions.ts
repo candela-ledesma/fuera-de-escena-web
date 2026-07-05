@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/config";
 
 import { reviewFormSchema, slugify } from "./schema";
 import {
@@ -22,16 +22,13 @@ export type ReviewFormState = {
 };
 
 async function getAuthenticatedAuthor() {
-  const supabase = await getServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
 
-  if (!user) {
+  if (!session?.user) {
     redirect("/login");
   }
 
-  return { supabase, authorId: user.id };
+  return { authorId: session.user.id };
 }
 
 async function resolveUniqueSlug(

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/config";
 import { ReviewForm } from "@/features/reviews/components/review-form";
 import { updateReviewAction } from "@/features/reviews/actions";
 import { getCategories, getReviewBySlugForAuthor, getReviewTagNames } from "@/features/reviews/queries";
@@ -16,25 +16,22 @@ export default async function EditReviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = await getServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
 
-  if (!user) {
+  if (!session?.user) {
     redirect("/login");
   }
 
   const [review, categories] = await Promise.all([
-    getReviewBySlugForAuthor(supabase, slug, user.id),
-    getCategories(supabase),
+    getReviewBySlugForAuthor(slug, session.user.id),
+    getCategories(),
   ]);
 
   if (!review) {
     notFound();
   }
 
-  const tagNames = await getReviewTagNames(supabase, review.id);
+  const tagNames = await getReviewTagNames(review.id);
   const boundAction = updateReviewAction.bind(null, slug);
 
   return (
