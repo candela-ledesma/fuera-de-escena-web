@@ -103,7 +103,9 @@ alter table tags enable row level security;
 alter table review_tags enable row level security;
 alter table comments enable row level security;
 alter table reactions enable row level security;
-alter table storage.objects enable row level security;
+-- storage.objects ya tiene RLS habilitado por defecto en Supabase y es
+-- propiedad de supabase_storage_admin: no se puede (ni hace falta) alterarlo
+-- desde acá. Las políticas de abajo se crean igual sobre esa tabla.
 
 -- profiles: lectura pública, escritura solo de la autora autenticada
 create policy "profiles are publicly readable"
