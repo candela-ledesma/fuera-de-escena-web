@@ -1,24 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6efe6;
-  --foreground: #171311;
-  --muted: #6d6358;
-  --card: #fff8ef;
-  --card-foreground: #171311;
-  --popover: #fff8ef;
-  --popover-foreground: #171311;
-  --primary: #8f4a2f;
-  --primary-foreground: #fff6ef;
-  --secondary: #eadccf;
-  --secondary-foreground: #171311;
-  --accent: #4f5a49;
-  --accent-foreground: #fff8ef;
-  --destructive: #b42318;
-  --destructive-foreground: #fff8ef;
-  --border: rgba(23, 19, 17, 0.12);
-  --input: rgba(23, 19, 17, 0.12);
-  --ring: rgba(143, 74, 47, 0.4);
+  --background: #f5eae4;
+  --foreground: #2a1f18;
+  --muted: #8a6e62;
+  --card: #fdf8f5;
+  --card-foreground: #2a1f18;
+  --popover: #fdf8f5;
+  --popover-foreground: #2a1f18;
+  --primary: #c9a84c;
+  --primary-hover: #9a7830;
+  --primary-foreground: #fdf8f5;
+  --secondary: #f9f1ed;
+  --secondary-foreground: #2a1f18;
+  --accent: #e8c5b8;
+  --accent-foreground: #2a1f18;
+  --destructive: #a84947;
+  --destructive-foreground: #fdf8f5;
+  --border: #dfc5b8;
+  --input: #dfc5b8;
+  --ring: rgba(201, 168, 76, 0.45);
   --radius: 1.25rem;
 }
 
@@ -50,9 +51,7 @@
 }
 
 html {
-  background:
-    radial-gradient(circle at top, rgba(255, 248, 239, 0.92), rgba(246, 239, 230, 0.88) 35%, rgba(235, 221, 204, 0.94)),
-    var(--background);
+  background: var(--background);
 }
 
 body {
@@ -67,7 +66,7 @@ body {
 }
 
 ::selection {
-  background: rgba(143, 74, 47, 0.18);
+  background: rgba(201, 168, 76, 0.28);
   color: var(--foreground);
 }
 
