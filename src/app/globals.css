@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f6efe6;
+  --foreground: #171311;
+  --muted: #6d6358;
+  --card: #fff8ef;
+  --card-foreground: #171311;
+  --popover: #fff8ef;
+  --popover-foreground: #171311;
+  --primary: #8f4a2f;
+  --primary-foreground: #fff6ef;
+  --secondary: #eadccf;
+  --secondary-foreground: #171311;
+  --accent: #4f5a49;
+  --accent-foreground: #fff8ef;
+  --destructive: #b42318;
+  --destructive-foreground: #fff8ef;
+  --border: rgba(23, 19, 17, 0.12);
+  --input: rgba(23, 19, 17, 0.12);
+  --ring: rgba(143, 74, 47, 0.4);
+  --radius: 1.25rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.5rem);
+}
+
+html {
+  background:
+    radial-gradient(circle at top, rgba(255, 248, 239, 0.92), rgba(246, 239, 230, 0.88) 35%, rgba(235, 221, 204, 0.94)),
+    var(--background);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--foreground);
+  font-family: var(--font-body), sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::selection {
+  background: rgba(143, 74, 47, 0.18);
+  color: var(--foreground);
+}
+
+.font-display {
+  font-family: var(--font-display), serif;
+}
