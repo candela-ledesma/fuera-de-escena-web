@@ -94,7 +94,22 @@ export interface Database {
           updated_at?: string;
           venue?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "reviews_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reviews_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       review_images: {
         Row: {
@@ -121,7 +136,15 @@ export interface Database {
           review_id?: string;
           storage_path?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "review_images_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       tags: {
         Row: {
@@ -154,7 +177,22 @@ export interface Database {
           review_id?: string;
           tag_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "review_tags_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "review_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       comments: {
         Row: {
@@ -181,7 +219,15 @@ export interface Database {
           review_id?: string;
           status?: Database["public"]["Enums"]["comment_status"];
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "comments_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       reactions: {
         Row: {
@@ -205,7 +251,15 @@ export interface Database {
           review_id?: string;
           type?: Database["public"]["Enums"]["reaction_type"];
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "reactions_review_id_fkey";
+            columns: ["review_id"];
+            isOneToOne: false;
+            referencedRelation: "reviews";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
