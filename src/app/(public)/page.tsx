@@ -1,99 +1,112 @@
-const highlights = [
-  {
-    title: "Lectura pública",
-    description: "Las críticas publicadas se leen sin login, con foco en accesibilidad y SEO.",
-  },
-  {
-    title: "Autora privada",
-    description: "Solo la autora puede crear, editar o borrar críticas desde el panel privado.",
-  },
-  {
-    title: "Interacción moderada",
-    description: "Comentarios con moderación previa y reacciones públicas deduplicadas.",
-  },
-];
+import { Button } from "@/components/ui/button";
 
-const stackItems = [
-  "Next.js 15 + React 19",
-  "Tailwind CSS + shadcn/ui",
-  "Supabase Auth, Postgres y Storage",
-  "Zod + React Hook Form",
-];
+const sampleReview = {
+  title: "La epidemia de la danza",
+  venue: "Biblioteca Rivadavia",
+  eventDate: "junio 2026",
+  rating: 5,
+};
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-6 sm:px-8 lg:px-10">
-      <div className="relative flex min-h-[calc(100vh-3rem)] flex-1 overflow-hidden rounded-[2rem] border border-border/80 bg-card/70 shadow-[0_24px_80px_rgba(23,19,17,0.12)] backdrop-blur">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(143,74,47,0.16),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(79,90,73,0.14),transparent_34%)]" />
-
-        <div className="relative z-10 flex w-full flex-col">
-          <header className="flex items-center justify-between border-b border-border/70 px-6 py-5 sm:px-8">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">
-                Fuera de Escena BB
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                Críticas de teatro desde Bahía Blanca.
-              </p>
-            </div>
-
-            <div className="rounded-full border border-border/70 bg-background/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.24em] text-muted">
-              Base inicial
-            </div>
-          </header>
-
-          <section className="grid flex-1 gap-10 px-6 py-12 sm:px-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-14 lg:py-16">
-            <div className="max-w-3xl space-y-8">
-              <div className="inline-flex items-center rounded-full border border-border/70 bg-background/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                Sitio editorial de una sola autora
-              </div>
-
-              <div className="space-y-5">
-                <h1 className="font-display text-5xl leading-[0.92] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
-                  Críticas de teatro con mirada local y pulso editorial.
-                </h1>
-                <p className="max-w-2xl text-base leading-7 text-muted sm:text-lg">
-                  Una base pensada para publicar obras, moderar comentarios y sostener una experiencia
-                  pública clara, accesible y segura desde el primer día.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {stackItems.map((item) => (
-                  <span
-                    key={item}
-                    className="rounded-full border border-border/70 bg-background/80 px-4 py-2 text-sm font-medium text-foreground shadow-sm"
-                  >
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <aside className="grid gap-4 rounded-[1.75rem] border border-border/70 bg-background/85 p-5 shadow-[0_18px_50px_rgba(23,19,17,0.08)] sm:p-6">
-              <div className="rounded-2xl border border-border/70 bg-card/90 p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
-                  Alcance inicial
-                </p>
-                <p className="mt-3 font-display text-3xl leading-tight">
-                  Lectura pública, autoría privada y moderación centralizada.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                {highlights.map((highlight) => (
-                  <article key={highlight.title} className="rounded-2xl border border-border/70 bg-card/70 p-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">
-                      {highlight.title}
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-muted">{highlight.description}</p>
-                  </article>
-                ))}
-              </div>
-            </aside>
-          </section>
+    <div className="min-h-dvh bg-background">
+      <div className="relative h-[min(58vw,520px)] w-full overflow-hidden bg-[#1A0F0A]">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="block h-full w-full object-cover opacity-[0.92]"
+        >
+          <source src="/hero.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#1A0F0A]/5 to-[#1A0F0A]/50" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
+          <p className="font-display text-sm italic tracking-[0.15em] text-[#FDF8F5]/80 sm:text-base">
+            mirar teatro desde otro lugar
+          </p>
         </div>
       </div>
-    </main>
+
+      <header className="sticky top-0 z-50 border-b border-border bg-card">
+        <div className="mx-auto flex h-[60px] max-w-[980px] items-center justify-between gap-4 px-6">
+          <a href="#" className="flex items-center gap-3 no-underline">
+            <div>
+              <div className="font-display text-lg font-semibold tracking-[0.03em] text-foreground">
+                Fuera de <span>Escena</span>
+              </div>
+              <span className="mt-0.5 block text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted">
+                @fueradeescenabb
+              </span>
+            </div>
+          </a>
+
+          <div className="flex items-center gap-2">
+            <Button size="sm">+ Nueva crítica</Button>
+          </div>
+        </div>
+      </header>
+
+      <section className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-[980px] items-center gap-8 px-6 py-8">
+          <div>
+            <div className="text-base font-medium text-foreground">@fueradeescenabb</div>
+            <div className="mt-1 flex gap-6 text-sm text-muted">
+              <span>
+                <strong className="font-semibold text-foreground">0</strong> críticas
+              </span>
+              <span>
+                <strong className="font-semibold text-foreground">1</strong> por semana
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-foreground">
+              <strong className="block font-semibold">Fuera de Escena</strong>
+              Críticas, miradas y recomendaciones sobre teatro en Bahía Blanca y la región.
+            </p>
+            <p className="mt-2 text-xs text-muted">Bahía Blanca · Argentina</p>
+          </div>
+        </div>
+      </section>
+
+      <div className="border-b border-border bg-card">
+        <div className="mx-auto flex max-w-[980px] items-center gap-3 px-6 py-2">
+          <button className="border-b-2 border-primary py-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#9A7830]">
+            Críticas teatrales
+          </button>
+          <div className="flex-1" />
+          <input
+            placeholder="Buscar obra..."
+            className="min-w-[160px] rounded-full border border-border bg-background px-3.5 py-1.5 text-sm text-foreground outline-none placeholder:text-muted"
+          />
+        </div>
+      </div>
+
+      <main className="mx-auto max-w-[980px] px-5 py-5">
+        <div className="grid grid-cols-3 gap-1">
+          <button className="relative aspect-square overflow-hidden border-none bg-[#2A1A14] text-left">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#C9A84C_0%,#8A3F35_38%,#2A1A14_100%)]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1A0A05]/90 via-[#1A0A05]/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
+              <span className="mb-1 block text-[0.6rem] tracking-[1px] text-primary">
+                {"★".repeat(sampleReview.rating)}
+              </span>
+              <p className="font-display text-lg font-semibold leading-tight text-[#FDF8F5]">
+                {sampleReview.title}
+              </p>
+              <p className="mt-0.5 truncate text-[0.66rem] text-[#FDF8F5]/60">
+                {sampleReview.venue} · {sampleReview.eventDate}
+              </p>
+            </div>
+          </button>
+        </div>
+      </main>
+
+      <footer className="mt-12 flex flex-col items-center gap-2 border-t border-border px-8 py-8 text-center">
+        <div className="text-xs tracking-[0.12em] text-muted">FUERA DE ESCENA BB · @FUERADEESCENABB</div>
+        <button className="text-[0.66rem] uppercase tracking-[0.18em] text-muted opacity-55 hover:opacity-100 hover:text-[#9A7830]">
+          Acceso
+        </button>
+      </footer>
+    </div>
   );
 }

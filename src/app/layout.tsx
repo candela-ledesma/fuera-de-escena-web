@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { Cormorant_Garamond, Jost } from "next/font/google";
 
 import "./globals.css";
 
 import type { ReactNode } from "react";
 
-const bodyFont = Manrope({
+const bodyFont = Jost({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   variable: "--font-body",
 });
 
-const displayFont = Fraunces({
+const displayFont = Cormorant_Garamond({
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600"],
   variable: "--font-display",
-  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
