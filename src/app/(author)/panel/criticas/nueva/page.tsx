@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/config";
 import { ReviewForm } from "@/features/reviews/components/review-form";
 import { createReview } from "@/features/reviews/actions";
 import { getCategories } from "@/features/reviews/queries";
@@ -10,8 +11,13 @@ export const metadata: Metadata = {
 };
 
 export default async function NewReviewPage() {
-  const supabase = await getServerSupabaseClient();
-  const categories = await getCategories(supabase);
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/login");
+  }
+
+  const categories = await getCategories();
 
   return (
     <div className="space-y-6">

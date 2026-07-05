@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth/config";
 import { ReviewList } from "@/features/reviews/components/review-list";
 import { getReviewsByAuthor } from "@/features/reviews/queries";
 
@@ -12,16 +12,13 @@ export const metadata: Metadata = {
 };
 
 export default async function PanelPage() {
-  const supabase = await getServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
 
-  if (!user) {
+  if (!session?.user) {
     redirect("/login");
   }
 
-  const reviews = await getReviewsByAuthor(supabase, user.id);
+  const reviews = await getReviewsByAuthor(session.user.id);
 
   return (
     <div className="space-y-6">

@@ -1,8 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { AuthError } from "next-auth";
 
-import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { signIn as authSignIn, signOut as authSignOut } from "@/lib/auth/config";
 
 import { signInSchema } from "./schema";
 
@@ -20,19 +20,25 @@ export async function signIn(_prevState: SignInState, formData: FormData): Promi
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const supabase = await getServerSupabaseClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const redirectTo = formData.get("redirectTo");
 
-  if (error) {
-    return { error: "Email o contraseña incorrectos." };
+  try {
+    await authSignIn("credentials", {
+      email: parsed.data.email,
+      password: parsed.data.password,
+      redirectTo: typeof redirectTo === "string" && redirectTo.startsWith("/panel") ? redirectTo : "/panel",
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { error: "Email o contraseña incorrectos." };
+    }
+
+    throw error;
   }
 
-  const redirectTo = formData.get("redirectTo");
-  redirect(typeof redirectTo === "string" && redirectTo.startsWith("/panel") ? redirectTo : "/panel");
+  return {};
 }
 
 export async function signOut(): Promise<void> {
-  const supabase = await getServerSupabaseClient();
-  await supabase.auth.signOut();
-  redirect("/login");
+  await authSignOut({ redirectTo: "/login" });
 }
