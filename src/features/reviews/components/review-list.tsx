@@ -12,8 +12,8 @@ type ReviewListItem = {
   status: "draft" | "published";
   rating: number | null;
   venue: string | null;
-  event_date: string | null;
-  updated_at: string;
+  eventDate: string | null;
+  updatedAt: Date;
 };
 
 export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {

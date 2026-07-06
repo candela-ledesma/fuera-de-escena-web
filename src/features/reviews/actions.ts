@@ -31,16 +31,12 @@ async function getAuthenticatedAuthor() {
   return { authorId: session.user.id };
 }
 
-async function resolveUniqueSlug(
-  supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
-  title: string,
-  excludeReviewId?: string,
-) {
+async function resolveUniqueSlug(title: string, excludeReviewId?: string) {
   const base = slugify(title);
   let candidate = base;
   let suffix = 2;
 
-  while (await slugExists(supabase, candidate, excludeReviewId)) {
+  while (await slugExists(candidate, excludeReviewId)) {
     candidate = `${base}-${suffix}`;
     suffix += 1;
   }
@@ -48,20 +44,14 @@ async function resolveUniqueSlug(
   return candidate;
 }
 
-async function resolveTagIds(
-  supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
-  tagNames: string[],
-) {
+async function resolveTagIds(tagNames: string[]) {
   if (tagNames.length === 0) return [];
 
-  const existing = await findTagsByName(supabase, tagNames);
+  const existing = await findTagsByName(tagNames);
   const existingNames = new Set(existing.map((tag) => tag.name));
   const missingNames = tagNames.filter((name) => !existingNames.has(name));
 
-  const created = await insertTags(
-    supabase,
-    missingNames.map((name) => ({ name, slug: slugify(name) })),
-  );
+  const created = await insertTags(missingNames.map((name) => ({ name, slug: slugify(name) })));
 
   return [...existing, ...created].map((tag) => tag.id);
 }
@@ -88,25 +78,25 @@ export async function createReview(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { supabase, authorId } = await getAuthenticatedAuthor();
+  const { authorId } = await getAuthenticatedAuthor();
   const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
 
-  const slug = await resolveUniqueSlug(supabase, title);
-  const tagIds = await resolveTagIds(supabase, tags);
+  const slug = await resolveUniqueSlug(title);
+  const tagIds = await resolveTagIds(tags);
 
-  const review = await insertReview(supabase, {
-    author_id: authorId,
+  const review = await insertReview({
+    authorId,
     title,
     venue: venue ?? null,
-    event_date: eventDate ?? null,
-    category_id: categoryId,
+    eventDate: eventDate ?? null,
+    categoryId,
     rating,
     body,
     slug,
   });
 
   if (tagIds.length > 0) {
-    await replaceReviewTags(supabase, review.id, tagIds);
+    await replaceReviewTags(review.id, tagIds);
   }
 
   revalidatePath("/panel");
@@ -124,8 +114,8 @@ export async function updateReviewAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { supabase, authorId } = await getAuthenticatedAuthor();
-  const existing = await getReviewBySlugForAuthor(supabase, reviewSlug, authorId);
+  const { authorId } = await getAuthenticatedAuthor();
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
     return { error: "La crítica no existe." };
@@ -133,35 +123,34 @@ export async function updateReviewAction(
 
   const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
 
-  const slug =
-    title === existing.title ? existing.slug : await resolveUniqueSlug(supabase, title, existing.id);
-  const tagIds = await resolveTagIds(supabase, tags);
+  const slug = title === existing.title ? existing.slug : await resolveUniqueSlug(title, existing.id);
+  const tagIds = await resolveTagIds(tags);
 
-  await updateReview(supabase, existing.id, {
+  await updateReview(existing.id, {
     title,
     venue: venue ?? null,
-    event_date: eventDate ?? null,
-    category_id: categoryId,
+    eventDate: eventDate ?? null,
+    categoryId,
     rating,
     body,
     slug,
   });
 
-  await replaceReviewTags(supabase, existing.id, tagIds);
+  await replaceReviewTags(existing.id, tagIds);
 
   revalidatePath("/panel");
   redirect("/panel");
 }
 
 export async function deleteReviewAction(reviewSlug: string): Promise<void> {
-  const { supabase, authorId } = await getAuthenticatedAuthor();
-  const existing = await getReviewBySlugForAuthor(supabase, reviewSlug, authorId);
+  const { authorId } = await getAuthenticatedAuthor();
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
     return;
   }
 
-  await deleteReview(supabase, existing.id);
+  await deleteReview(existing.id);
   revalidatePath("/panel");
 }
 
@@ -169,16 +158,16 @@ export async function setReviewStatusAction(
   reviewSlug: string,
   status: "draft" | "published",
 ): Promise<void> {
-  const { supabase, authorId } = await getAuthenticatedAuthor();
-  const existing = await getReviewBySlugForAuthor(supabase, reviewSlug, authorId);
+  const { authorId } = await getAuthenticatedAuthor();
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
     return;
   }
 
-  await updateReview(supabase, existing.id, {
+  await updateReview(existing.id, {
     status,
-    published_at: status === "published" ? new Date().toISOString() : null,
+    publishedAt: status === "published" ? new Date() : null,
   });
 
   revalidatePath("/panel");
