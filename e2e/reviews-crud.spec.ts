@@ -1,3 +1,5 @@
+import path from "path";
+
 import { eq } from "drizzle-orm";
 import { test, expect } from "@playwright/test";
 
@@ -18,6 +20,7 @@ const REVIEW = {
   venue: "La Macanuda",
   eventDate: "2026-06-15",
   rating: "5",
+  imageAlt: "Escena de la obra con los actores en la fiesta de cumpleaños",
   body: `“Los hijos de la finada Mircheva, segunda parte” nos sumerge otra vez en un ecosistema escénico donde el humor, el absurdo y la tragedia conviven y coexisten a lo largo de toda la presentación. No obstante, esta esperada precuela introduce una alteración en su premisa fundacional: si la obra original nos anclaba en la oscura solemnidad de un velorio, en esta segunda parte o precuela, todo ocurre durante un cumpleaños. El núcleo de la propuesta teatral y la gran apuesta de su dirección reside, justamente, en hacer que la tragedia ocurra en medio de la celebración.
 
 Es claro que el montaje busca volver a impactar al espectador, aunque desde otro lugar completamente diferente. Si bien es innegable que esta operación escénica resulta interesante y disruptiva desde lo conceptual, considero que la primera parte tenía un impacto más potente en la memoria; mientras que aquel “triste” (entre muchas comillas) velorio generaba una incomodidad más cruda, más difícil de esquivar, acá, la tragedia aparece hábilmente envuelta en fiesta.
@@ -77,6 +80,11 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByLabel("Texto de la crítica").fill(REVIEW.body);
       await page.getByLabel("Palabras clave").fill(REVIEW.tags);
 
+      await page
+        .locator("#images")
+        .setInputFiles(path.join(__dirname, "fixtures", "test-image.png"));
+      await page.getByPlaceholder("Descripción de la imagen 1 (accesibilidad)").fill(REVIEW.imageAlt);
+
       await page.getByRole("button", { name: "Crear crítica" }).click();
       await expect(page).toHaveURL(/\/panel$/);
       await expect(page.getByText(REVIEW.title)).toBeVisible();
@@ -103,6 +111,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/critica\/.+/);
       await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
       await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
+      await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
 
       await page.goto("/panel");
     });
@@ -113,6 +122,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
       await expect(page.getByLabel("Título de la obra")).toHaveValue(REVIEW.title);
       await expect(page.getByLabel("Texto de la crítica")).toHaveValue(REVIEW.body);
+      await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
 
       await page.getByLabel("Teatro / lugar").fill(EDITED_VENUE);
       await page.getByRole("button", { name: "Guardar cambios" }).click();

@@ -14,9 +14,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import Image from "next/image";
+
 import type { ReviewFormState } from "../actions";
+import { MAX_REVIEW_IMAGES } from "../schema";
 
 type Category = { id: string; name: string };
+
+type ExistingImage = {
+  storagePath: string;
+  altText: string | null;
+};
 
 type ReviewDefaults = {
   title: string;
@@ -26,6 +34,7 @@ type ReviewDefaults = {
   rating: string;
   body: string;
   tags: string;
+  images: ExistingImage[];
 };
 
 const emptyDefaults: ReviewDefaults = {
@@ -36,6 +45,7 @@ const emptyDefaults: ReviewDefaults = {
   rating: "",
   body: "",
   tags: "",
+  images: [],
 };
 
 export function ReviewForm({
@@ -118,6 +128,36 @@ export function ReviewForm({
           defaultValue={defaults.tags}
         />
         <p className="text-sm text-muted-foreground">Separadas por coma.</p>
+      </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="images">Imágenes (hasta {MAX_REVIEW_IMAGES})</Label>
+
+        {defaults.images.length > 0 ? (
+          <div className="flex gap-3">
+            {defaults.images.map((image) => (
+              <Image
+                key={image.storagePath}
+                src={image.storagePath}
+                alt={image.altText ?? ""}
+                width={96}
+                height={96}
+                className="h-24 w-24 rounded-md border border-border object-cover"
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <Input id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple />
+        <p className="text-sm text-muted-foreground">
+          JPG, PNG o WEBP, hasta 5MB cada una.
+          {defaults.images.length > 0 ? " Si subís nuevas, reemplazan a las actuales." : ""}
+        </p>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Input name="imageAlts" placeholder="Descripción de la imagen 1 (accesibilidad)" />
+          <Input name="imageAlts" placeholder="Descripción de la imagen 2 (accesibilidad)" />
+        </div>
       </div>
 
       {state.error ? (
