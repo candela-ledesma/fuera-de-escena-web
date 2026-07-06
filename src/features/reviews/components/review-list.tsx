@@ -42,6 +42,14 @@ export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {review.status === "published" ? (
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/critica/${review.slug}`} target="_blank" rel="noopener noreferrer">
+                  Ver publicación
+                </Link>
+              </Button>
+            ) : null}
+
             <Button asChild variant="outline" size="sm">
               <Link href={`/panel/criticas/${review.slug}`}>Editar</Link>
             </Button>

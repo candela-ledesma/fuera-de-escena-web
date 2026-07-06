@@ -85,9 +85,14 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
     const reviewCard = page.locator("li", { hasText: REVIEW.title });
 
+    await test.step("el botón 'Ver publicación' no aparece en borrador", async () => {
+      await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
+    });
+
     await test.step("publicar la crítica", async () => {
       await reviewCard.getByRole("button", { name: "Publicar" }).click();
       await expect(reviewCard.getByText("Publicada")).toBeVisible();
+      await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).toBeVisible();
     });
 
     await test.step("la crítica publicada aparece en la vista pública", async () => {
@@ -119,6 +124,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     await test.step("despublicar la crítica", async () => {
       await reviewCard.getByRole("button", { name: "Pasar a borrador" }).click();
       await expect(reviewCard.getByText("Borrador")).toBeVisible();
+      await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
     });
 
     await test.step("la crítica despublicada ya no aparece en la vista pública", async () => {
