@@ -1,116 +1,92 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 
-import type { Database } from "@/types/database";
+import { db } from "@/lib/db/client";
+import { categories, reviews, reviewTags, tags } from "@/lib/db/schema";
 
-type Client = SupabaseClient<Database>;
-
-export async function getCategories(supabase: Client) {
-  const { data, error } = await supabase.from("categories").select("id, name, slug").order("name");
-
-  if (error) throw error;
-  return data;
+export async function getCategories() {
+  return db.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).orderBy(categories.name);
 }
 
-export async function getReviewsByAuthor(supabase: Client, authorId: string) {
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("id, title, slug, status, rating, venue, event_date, updated_at")
-    .eq("author_id", authorId)
-    .order("updated_at", { ascending: false });
-
-  if (error) throw error;
-  return data;
+export async function getReviewsByAuthor(authorId: string) {
+  return db
+    .select({
+      id: reviews.id,
+      title: reviews.title,
+      slug: reviews.slug,
+      status: reviews.status,
+      rating: reviews.rating,
+      venue: reviews.venue,
+      eventDate: reviews.eventDate,
+      updatedAt: reviews.updatedAt,
+    })
+    .from(reviews)
+    .where(eq(reviews.authorId, authorId))
+    .orderBy(desc(reviews.updatedAt));
 }
 
-export async function getReviewBySlugForAuthor(supabase: Client, slug: string, authorId: string) {
-  const { data, error } = await supabase
-    .from("reviews")
-    .select("id, title, venue, event_date, category_id, rating, body, slug, status, author_id")
-    .eq("slug", slug)
-    .eq("author_id", authorId)
-    .maybeSingle();
+export async function getReviewBySlugForAuthor(slug: string, authorId: string) {
+  const [review] = await db
+    .select()
+    .from(reviews)
+    .where(and(eq(reviews.slug, slug), eq(reviews.authorId, authorId)))
+    .limit(1);
 
-  if (error) throw error;
-  return data;
+  return review ?? null;
 }
 
-export async function getReviewTagNames(supabase: Client, reviewId: string) {
-  const { data, error } = await supabase
-    .from("review_tags")
-    .select("tags(name)")
-    .eq("review_id", reviewId);
+export async function getReviewTagNames(reviewId: string) {
+  const rows = await db
+    .select({ name: tags.name })
+    .from(reviewTags)
+    .innerJoin(tags, eq(reviewTags.tagId, tags.id))
+    .where(eq(reviewTags.reviewId, reviewId));
 
-  if (error) throw error;
-  return data.map((row) => row.tags?.name).filter((name): name is string => Boolean(name));
+  return rows.map((row) => row.name);
 }
 
-export async function slugExists(supabase: Client, slug: string, excludeReviewId?: string) {
-  let query = supabase.from("reviews").select("id").eq("slug", slug);
+export async function slugExists(slug: string, excludeReviewId?: string) {
+  const conditions = excludeReviewId
+    ? and(eq(reviews.slug, slug), ne(reviews.id, excludeReviewId))
+    : eq(reviews.slug, slug);
 
-  if (excludeReviewId) {
-    query = query.neq("id", excludeReviewId);
-  }
+  const [existing] = await db.select({ id: reviews.id }).from(reviews).where(conditions).limit(1);
 
-  const { data, error } = await query.maybeSingle();
-
-  if (error) throw error;
-  return data !== null;
+  return Boolean(existing);
 }
 
-export async function insertReview(
-  supabase: Client,
-  review: Database["public"]["Tables"]["reviews"]["Insert"],
-) {
-  const { data, error } = await supabase.from("reviews").insert(review).select("id, slug").single();
+export async function insertReview(review: typeof reviews.$inferInsert) {
+  const [created] = await db.insert(reviews).values(review).returning({ id: reviews.id, slug: reviews.slug });
 
-  if (error) throw error;
-  return data;
+  return created;
 }
 
-export async function updateReview(
-  supabase: Client,
-  reviewId: string,
-  review: Database["public"]["Tables"]["reviews"]["Update"],
-) {
-  const { error } = await supabase.from("reviews").update(review).eq("id", reviewId);
-
-  if (error) throw error;
+export async function updateReview(reviewId: string, review: Partial<typeof reviews.$inferInsert>) {
+  await db
+    .update(reviews)
+    .set({ ...review, updatedAt: new Date() })
+    .where(eq(reviews.id, reviewId));
 }
 
-export async function deleteReview(supabase: Client, reviewId: string) {
-  const { error } = await supabase.from("reviews").delete().eq("id", reviewId);
-
-  if (error) throw error;
+export async function deleteReview(reviewId: string) {
+  await db.delete(reviews).where(eq(reviews.id, reviewId));
 }
 
-export async function findTagsByName(supabase: Client, names: string[]) {
+export async function findTagsByName(names: string[]) {
   if (names.length === 0) return [];
 
-  const { data, error } = await supabase.from("tags").select("id, name").in("name", names);
-
-  if (error) throw error;
-  return data;
+  return db.select({ id: tags.id, name: tags.name }).from(tags).where(inArray(tags.name, names));
 }
 
-export async function insertTags(supabase: Client, tags: { name: string; slug: string }[]) {
-  if (tags.length === 0) return [];
+export async function insertTags(newTags: { name: string; slug: string }[]) {
+  if (newTags.length === 0) return [];
 
-  const { data, error } = await supabase.from("tags").insert(tags).select("id, name");
-
-  if (error) throw error;
-  return data;
+  return db.insert(tags).values(newTags).returning({ id: tags.id, name: tags.name });
 }
 
-export async function replaceReviewTags(supabase: Client, reviewId: string, tagIds: string[]) {
-  const { error: deleteError } = await supabase.from("review_tags").delete().eq("review_id", reviewId);
-
-  if (deleteError) throw deleteError;
+export async function replaceReviewTags(reviewId: string, tagIds: string[]) {
+  await db.delete(reviewTags).where(eq(reviewTags.reviewId, reviewId));
 
   if (tagIds.length === 0) return;
 
-  const { error: insertError } = await supabase
-    .from("review_tags")
-    .insert(tagIds.map((tagId) => ({ review_id: reviewId, tag_id: tagId })));
-
-  if (insertError) throw insertError;
+  await db.insert(reviewTags).values(tagIds.map((tagId) => ({ reviewId, tagId })));
 }

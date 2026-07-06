@@ -44,8 +44,8 @@ export default async function EditReviewPage({
         defaults={{
           title: review.title,
           venue: review.venue ?? "",
-          eventDate: review.event_date ?? "",
-          categoryId: review.category_id ?? "",
+          eventDate: review.eventDate ?? "",
+          categoryId: review.categoryId ?? "",
           rating: review.rating ? String(review.rating) : "",
           body: review.body,
           tags: tagNames.join(", "),
