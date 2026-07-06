@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const reviewStatusSchema = z.enum(["draft", "published"]);
+export const MAX_REVIEW_IMAGES = 2;
+export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 export const reviewFormSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio.").max(200),
@@ -20,8 +22,6 @@ export const reviewFormSchema = z.object({
         .filter((tag) => tag.length > 0),
     ),
 });
-
-export type ReviewFormInput = z.infer<typeof reviewFormSchema>;
 
 export function slugify(value: string): string {
   return value

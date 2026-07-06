@@ -4,7 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth/config";
 import { ReviewForm } from "@/features/reviews/components/review-form";
 import { updateReviewAction } from "@/features/reviews/actions";
-import { getCategories, getReviewBySlugForAuthor, getReviewTagNames } from "@/features/reviews/queries";
+import {
+  getCategories,
+  getReviewBySlugForAuthor,
+  getReviewImages,
+  getReviewTagNames,
+} from "@/features/reviews/queries";
 
 export const metadata: Metadata = {
   title: "Editar crítica",
@@ -31,7 +36,10 @@ export default async function EditReviewPage({
     notFound();
   }
 
-  const tagNames = await getReviewTagNames(review.id);
+  const [tagNames, images] = await Promise.all([
+    getReviewTagNames(review.id),
+    getReviewImages(review.id),
+  ]);
   const boundAction = updateReviewAction.bind(null, slug);
 
   return (
@@ -49,6 +57,7 @@ export default async function EditReviewPage({
           rating: review.rating ? String(review.rating) : "",
           body: review.body,
           tags: tagNames.join(", "),
+          images: images.map((image) => ({ storagePath: image.storagePath, altText: image.altText })),
         }}
       />
     </div>

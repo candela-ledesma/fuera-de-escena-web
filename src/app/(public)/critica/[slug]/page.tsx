@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getPublishedReviewBySlug, getReviewTagNames } from "@/features/reviews/queries";
+import { getPublishedReviewBySlug, getReviewImages, getReviewTagNames } from "@/features/reviews/queries";
 
 export const revalidate = 0;
 
@@ -36,7 +37,10 @@ export default async function ReviewDetailPage({
     notFound();
   }
 
-  const tagNames = await getReviewTagNames(review.id);
+  const [tagNames, images] = await Promise.all([
+    getReviewTagNames(review.id),
+    getReviewImages(review.id),
+  ]);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -65,6 +69,21 @@ export default async function ReviewDetailPage({
 
         {review.rating ? (
           <p className="mt-3 text-lg tracking-[2px] text-primary">{"★".repeat(review.rating)}</p>
+        ) : null}
+
+        {images.length > 0 ? (
+          <div className={`mt-6 grid gap-3 ${images.length > 1 ? "sm:grid-cols-2" : ""}`}>
+            {images.map((image) => (
+              <Image
+                key={image.id}
+                src={image.storagePath}
+                alt={image.altText ?? ""}
+                width={640}
+                height={480}
+                className="w-full rounded-md border border-border object-cover"
+              />
+            ))}
+          </div>
         ) : null}
 
         <div className="mt-8 whitespace-pre-wrap font-display text-lg leading-8 text-foreground">

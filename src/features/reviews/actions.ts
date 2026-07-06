@@ -1,17 +1,20 @@
 "use server";
 
+import { del, put } from "@vercel/blob";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/config";
 
-import { reviewFormSchema, slugify } from "./schema";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, reviewFormSchema, slugify } from "./schema";
 import {
   deleteReview,
   findTagsByName,
   getReviewBySlugForAuthor,
+  getReviewImages,
   insertReview,
   insertTags,
+  replaceReviewImages,
   replaceReviewTags,
   slugExists,
   updateReview,
@@ -68,6 +71,47 @@ function parseForm(formData: FormData) {
   });
 }
 
+function validateImageFile(file: File): string | null {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    return "Las imágenes deben ser JPG, PNG o WEBP.";
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    return "Cada imagen debe pesar menos de 5MB.";
+  }
+
+  return null;
+}
+
+async function resolveNewImages(formData: FormData, slug: string) {
+  const files = formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+  const altTexts = formData.getAll("imageAlts").map((entry) => String(entry));
+
+  if (files.length > MAX_REVIEW_IMAGES) {
+    return { error: `Máximo ${MAX_REVIEW_IMAGES} imágenes.` };
+  }
+
+  for (const file of files) {
+    const error = validateImageFile(file);
+    if (error) return { error };
+  }
+
+  const uploaded = await Promise.all(
+    files.map(async (file, index) => {
+      const blob = await put(`reviews/${slug}-${Date.now()}-${index}`, file, {
+        access: "public",
+        addRandomSuffix: true,
+      });
+
+      return { storagePath: blob.url, altText: altTexts[index] ?? "", position: index + 1 };
+    }),
+  );
+
+  return { images: uploaded };
+}
+
 export async function createReview(
   _prevState: ReviewFormState,
   formData: FormData,
@@ -84,6 +128,12 @@ export async function createReview(
   const slug = await resolveUniqueSlug(title);
   const tagIds = await resolveTagIds(tags);
 
+  const imagesResult = await resolveNewImages(formData, slug);
+
+  if (imagesResult.error) {
+    return { error: imagesResult.error };
+  }
+
   const review = await insertReview({
     authorId,
     title,
@@ -97,6 +147,10 @@ export async function createReview(
 
   if (tagIds.length > 0) {
     await replaceReviewTags(review.id, tagIds);
+  }
+
+  if (imagesResult.images && imagesResult.images.length > 0) {
+    await replaceReviewImages(review.id, imagesResult.images);
   }
 
   revalidatePath("/panel");
@@ -127,6 +181,20 @@ export async function updateReviewAction(
   const slug = title === existing.title ? existing.slug : await resolveUniqueSlug(title, existing.id);
   const tagIds = await resolveTagIds(tags);
 
+  const newFiles = formData.getAll("images").filter((entry) => entry instanceof File && entry.size > 0);
+
+  if (newFiles.length > 0) {
+    const imagesResult = await resolveNewImages(formData, slug);
+
+    if (imagesResult.error) {
+      return { error: imagesResult.error };
+    }
+
+    const previousImages = await getReviewImages(existing.id);
+    await Promise.all(previousImages.map((image) => del(image.storagePath)));
+    await replaceReviewImages(existing.id, imagesResult.images ?? []);
+  }
+
   await updateReview(existing.id, {
     title,
     venue: venue ?? null,
@@ -152,6 +220,9 @@ export async function deleteReviewAction(reviewSlug: string): Promise<void> {
   if (!existing) {
     return;
   }
+
+  const images = await getReviewImages(existing.id);
+  await Promise.all(images.map((image) => del(image.storagePath)));
 
   await deleteReview(existing.id);
   revalidatePath("/panel");

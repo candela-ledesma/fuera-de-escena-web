@@ -1,7 +1,7 @@
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
-import { categories, reviews, reviewTags, tags } from "@/lib/db/schema";
+import { categories, reviewImages, reviews, reviewTags, tags } from "@/lib/db/schema";
 
 export async function getCategories() {
   return db.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).orderBy(categories.name);
@@ -71,6 +71,30 @@ export async function getPublishedReviewBySlug(slug: string) {
     .limit(1);
 
   return review ?? null;
+}
+
+export async function getReviewImages(reviewId: string) {
+  return db
+    .select({
+      id: reviewImages.id,
+      storagePath: reviewImages.storagePath,
+      altText: reviewImages.altText,
+      position: reviewImages.position,
+    })
+    .from(reviewImages)
+    .where(eq(reviewImages.reviewId, reviewId))
+    .orderBy(asc(reviewImages.position));
+}
+
+export async function replaceReviewImages(
+  reviewId: string,
+  images: { storagePath: string; altText: string; position: number }[],
+) {
+  await db.delete(reviewImages).where(eq(reviewImages.reviewId, reviewId));
+
+  if (images.length === 0) return;
+
+  await db.insert(reviewImages).values(images.map((image) => ({ reviewId, ...image })));
 }
 
 export async function getReviewTagNames(reviewId: string) {
