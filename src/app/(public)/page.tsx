@@ -1,13 +1,13 @@
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
+import { getPublishedReviews } from "@/features/reviews/queries";
 
-const sampleReview = {
-  title: "La epidemia de la danza",
-  venue: "Biblioteca Rivadavia",
-  eventDate: "junio 2026",
-  rating: 5,
-};
+export const revalidate = 0;
 
-export default function HomePage() {
+export default async function HomePage() {
+  const reviews = await getPublishedReviews();
+
   return (
     <div className="min-h-dvh bg-background">
       <div className="relative h-[min(58vw,520px)] w-full overflow-hidden bg-[#1A0F0A]">
@@ -42,7 +42,9 @@ export default function HomePage() {
           </a>
 
           <div className="flex items-center gap-2">
-            <Button size="sm">+ Nueva crítica</Button>
+            <Button asChild size="sm">
+              <Link href="/panel">+ Nueva crítica</Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -53,7 +55,7 @@ export default function HomePage() {
             <div className="text-base font-medium text-foreground">@fueradeescenabb</div>
             <div className="mt-1 flex gap-6 text-sm text-muted">
               <span>
-                <strong className="font-semibold text-foreground">0</strong> críticas
+                <strong className="font-semibold text-foreground">{reviews.length}</strong> críticas
               </span>
               <span>
                 <strong className="font-semibold text-foreground">1</strong> por semana
@@ -82,30 +84,48 @@ export default function HomePage() {
       </div>
 
       <main className="mx-auto max-w-[980px] px-5 py-5">
-        <div className="grid grid-cols-3 gap-1">
-          <button className="relative aspect-square overflow-hidden border-none bg-[#2A1A14] text-left">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#C9A84C_0%,#8A3F35_38%,#2A1A14_100%)]" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A0A05]/90 via-[#1A0A05]/25 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
-              <span className="mb-1 block text-[0.6rem] tracking-[1px] text-primary">
-                {"★".repeat(sampleReview.rating)}
-              </span>
-              <p className="font-display text-lg font-semibold leading-tight text-[#FDF8F5]">
-                {sampleReview.title}
-              </p>
-              <p className="mt-0.5 truncate text-[0.66rem] text-[#FDF8F5]/60">
-                {sampleReview.venue} · {sampleReview.eventDate}
-              </p>
-            </div>
-          </button>
-        </div>
+        {reviews.length === 0 ? (
+          <div className="py-20 text-center">
+            <p className="font-display text-xl italic text-foreground">Todavía no hay críticas publicadas.</p>
+            <p className="mt-2 text-sm text-muted">Volvé pronto.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
+            {reviews.map((review) => (
+              <Link
+                key={review.id}
+                href={`/critica/${review.slug}`}
+                className="relative aspect-square overflow-hidden bg-[#2A1A14] text-left"
+              >
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#C9A84C_0%,#8A3F35_38%,#2A1A14_100%)]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1A0A05]/90 via-[#1A0A05]/25 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
+                  {review.rating ? (
+                    <span className="mb-1 block text-[0.6rem] tracking-[1px] text-primary">
+                      {"★".repeat(review.rating)}
+                    </span>
+                  ) : null}
+                  <p className="font-display text-lg font-semibold leading-tight text-[#FDF8F5]">
+                    {review.title}
+                  </p>
+                  <p className="mt-0.5 truncate text-[0.66rem] text-[#FDF8F5]/60">
+                    {[review.venue, review.categoryName].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
 
       <footer className="mt-12 flex flex-col items-center gap-2 border-t border-border px-8 py-8 text-center">
         <div className="text-xs tracking-[0.12em] text-muted">FUERA DE ESCENA BB · @FUERADEESCENABB</div>
-        <button className="text-[0.66rem] uppercase tracking-[0.18em] text-muted opacity-55 hover:opacity-100 hover:text-[#9A7830]">
+        <Link
+          href="/login"
+          className="text-[0.66rem] uppercase tracking-[0.18em] text-muted opacity-55 hover:opacity-100 hover:text-[#9A7830]"
+        >
           Acceso
-        </button>
+        </Link>
       </footer>
     </div>
   );

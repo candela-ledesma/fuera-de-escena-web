@@ -34,6 +34,45 @@ export async function getReviewBySlugForAuthor(slug: string, authorId: string) {
   return review ?? null;
 }
 
+export async function getPublishedReviews() {
+  return db
+    .select({
+      id: reviews.id,
+      title: reviews.title,
+      slug: reviews.slug,
+      venue: reviews.venue,
+      eventDate: reviews.eventDate,
+      rating: reviews.rating,
+      publishedAt: reviews.publishedAt,
+      categoryName: categories.name,
+    })
+    .from(reviews)
+    .leftJoin(categories, eq(reviews.categoryId, categories.id))
+    .where(eq(reviews.status, "published"))
+    .orderBy(desc(reviews.publishedAt));
+}
+
+export async function getPublishedReviewBySlug(slug: string) {
+  const [review] = await db
+    .select({
+      id: reviews.id,
+      title: reviews.title,
+      venue: reviews.venue,
+      eventDate: reviews.eventDate,
+      rating: reviews.rating,
+      body: reviews.body,
+      slug: reviews.slug,
+      publishedAt: reviews.publishedAt,
+      categoryName: categories.name,
+    })
+    .from(reviews)
+    .leftJoin(categories, eq(reviews.categoryId, categories.id))
+    .where(and(eq(reviews.slug, slug), eq(reviews.status, "published")))
+    .limit(1);
+
+  return review ?? null;
+}
+
 export async function getReviewTagNames(reviewId: string) {
   const rows = await db
     .select({ name: tags.name })
