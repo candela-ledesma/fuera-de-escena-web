@@ -100,6 +100,7 @@ export async function createReview(
   }
 
   revalidatePath("/panel");
+  revalidatePath("/");
   redirect("/panel");
 }
 
@@ -139,6 +140,8 @@ export async function updateReviewAction(
   await replaceReviewTags(existing.id, tagIds);
 
   revalidatePath("/panel");
+  revalidatePath("/");
+  revalidatePath(`/critica/${slug}`);
   redirect("/panel");
 }
 
@@ -152,6 +155,8 @@ export async function deleteReviewAction(reviewSlug: string): Promise<void> {
 
   await deleteReview(existing.id);
   revalidatePath("/panel");
+  revalidatePath("/");
+  revalidatePath(`/critica/${reviewSlug}`);
 }
 
 export async function setReviewStatusAction(
@@ -171,4 +176,6 @@ export async function setReviewStatusAction(
   });
 
   revalidatePath("/panel");
+  revalidatePath("/");
+  revalidatePath(`/critica/${reviewSlug}`);
 }

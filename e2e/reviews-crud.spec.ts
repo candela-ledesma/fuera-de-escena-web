@@ -1,4 +1,8 @@
+import { eq } from "drizzle-orm";
 import { test, expect } from "@playwright/test";
+
+import { db } from "../src/lib/db/client";
+import { reviews } from "../src/lib/db/schema";
 
 const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
 const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
@@ -34,7 +38,19 @@ Elenco: Sofia Caporale; Francisco Mayor; Música: Shleper Klezmer. Sala: La Maca
 
 const EDITED_VENUE = "Biblioteca Rivadavia";
 
+async function deleteLeftoverTestReviews() {
+  await db.delete(reviews).where(eq(reviews.title, REVIEW.title));
+}
+
 test.describe("CRUD de críticas (panel de la autora)", () => {
+  test.beforeAll(async () => {
+    await deleteLeftoverTestReviews();
+  });
+
+  test.afterAll(async () => {
+    await deleteLeftoverTestReviews();
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
@@ -74,6 +90,18 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(reviewCard.getByText("Publicada")).toBeVisible();
     });
 
+    await test.step("la crítica publicada aparece en la vista pública", async () => {
+      await page.goto("/");
+      await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).toBeVisible();
+
+      await page.getByRole("link", { name: new RegExp(REVIEW.title) }).click();
+      await expect(page).toHaveURL(/\/critica\/.+/);
+      await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
+      await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
+
+      await page.goto("/panel");
+    });
+
     await test.step("editar la crítica", async () => {
       await reviewCard.getByRole("link", { name: "Editar" }).click();
       await expect(page).toHaveURL(/\/panel\/criticas\/.+/);
@@ -91,6 +119,13 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     await test.step("despublicar la crítica", async () => {
       await reviewCard.getByRole("button", { name: "Pasar a borrador" }).click();
       await expect(reviewCard.getByText("Borrador")).toBeVisible();
+    });
+
+    await test.step("la crítica despublicada ya no aparece en la vista pública", async () => {
+      await page.goto("/");
+      await page.reload();
+      await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).not.toBeVisible();
+      await page.goto("/panel");
     });
 
     await test.step("borrar la crítica", async () => {
