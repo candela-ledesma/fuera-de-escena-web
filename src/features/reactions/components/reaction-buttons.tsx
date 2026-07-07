@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useRef, useTransition } from "react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,13 @@ import { REACTION_LABELS, REACTION_TYPES } from "../schema";
 
 type ReactionType = (typeof REACTION_TYPES)[number];
 type ReactionCounts = Partial<Record<ReactionType, number>>;
+
+const REACTION_TEXT_LABELS: Record<ReactionType, string> = {
+  like: "Me gusta",
+  love: "Me encanta",
+  wow: "Me sorprende",
+  applause: "Aplauso",
+};
 
 export function ReactionButtons({
   reviewId,
@@ -71,38 +79,72 @@ export function ReactionButtons({
       try {
         setOptimisticState(type);
         await toggleReaction(reviewSlug, reviewId, type);
+      } catch {
+        toast.error("No se pudo registrar tu reacción.");
       } finally {
         isTogglingRef.current = false;
       }
     });
   }
 
-  return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Reaccionar a esta crítica">
-      {REACTION_TYPES.map((type) => {
-        const isActive = optimisticState.activeType === type;
-        const count = optimisticState.counts[type] ?? 0;
+  const totalReactions = REACTION_TYPES.reduce(
+    (sum, type) => sum + (optimisticState.counts[type] ?? 0),
+    0,
+  );
 
-        return (
-          <button
-            key={type}
-            type="button"
-            disabled={isPending}
-            onClick={() => handleToggle(type)}
-            aria-pressed={isActive}
-            aria-label={`${REACTION_LABELS[type]} — ${count} ${count === 1 ? "reacción" : "reacciones"}`}
-            className={cn(
-              "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors",
-              isActive
-                ? "border-primary bg-accent/40 text-foreground"
-                : "border-border bg-secondary/50 text-muted-foreground hover:border-primary/60",
-            )}
-          >
-            <span aria-hidden="true">{REACTION_LABELS[type]}</span>
-            <span>{count}</span>
-          </button>
-        );
-      })}
+  return (
+    <div>
+      <p className="font-display text-lg text-foreground">¿Qué te pareció la obra?</p>
+      <p className="mt-1 text-sm text-muted">
+        Tocá para reaccionar · tocá de nuevo para sacar tu reacción
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Reaccionar a esta crítica">
+        {REACTION_TYPES.map((type) => {
+          const isActive = optimisticState.activeType === type;
+          const count = optimisticState.counts[type] ?? 0;
+          const textLabel = REACTION_TEXT_LABELS[type];
+
+          return (
+            <button
+              key={type}
+              type="button"
+              disabled={isPending}
+              onClick={() => handleToggle(type)}
+              aria-pressed={isActive}
+              aria-label={count > 0 ? `${textLabel} · ${count}` : textLabel}
+              className={cn(
+                "group flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "motion-safe:active:scale-95",
+                isActive
+                  ? "border-primary bg-primary text-primary-foreground font-medium"
+                  : "border-border bg-transparent text-muted hover:border-accent hover:bg-accent/40",
+              )}
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "transition-transform motion-safe:duration-200",
+                  isActive && "motion-safe:scale-125",
+                )}
+              >
+                {REACTION_LABELS[type]}
+              </span>
+              <span>{textLabel}</span>
+              {count > 0 ? <span>{count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {totalReactions > 0 ? (
+        <p className="mt-3 text-sm text-muted">
+          {totalReactions === 1
+            ? "1 persona reaccionó"
+            : `${totalReactions} personas reaccionaron`}
+        </p>
+      ) : null}
     </div>
   );
 }
