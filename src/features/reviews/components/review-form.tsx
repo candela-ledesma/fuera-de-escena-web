@@ -1,6 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Star } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 import type { ReviewFormState } from "../actions";
-import { MAX_REVIEW_IMAGES } from "../schema";
+import { reviewFormSchema } from "../schema";
+import { ImageUploader, type ExistingImage } from "./image-uploader";
 
 type Category = { id: string; name: string };
-
-type ExistingImage = {
-  storagePath: string;
-  altText: string | null;
-};
 
 type ReviewDefaults = {
   title: string;
@@ -48,6 +47,16 @@ const emptyDefaults: ReviewDefaults = {
   images: [],
 };
 
+type FormValues = {
+  title: string;
+  venue?: string;
+  eventDate?: string;
+  categoryId: string;
+  rating: number | undefined;
+  body: string;
+  tags?: string;
+};
+
 export function ReviewForm({
   categories,
   defaults = emptyDefaults,
@@ -59,32 +68,84 @@ export function ReviewForm({
   action: (state: ReviewFormState, formData: FormData) => Promise<ReviewFormState>;
   submitLabel: string;
 }) {
-  const [state, formAction, isPending] = useActionState(action, {});
+  const [state, formAction, isActionPending] = useActionState(action, {});
+  const [isTransitionPending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(reviewFormSchema) as unknown as Resolver<FormValues>,
+    defaultValues: {
+      title: defaults.title,
+      venue: defaults.venue,
+      eventDate: defaults.eventDate,
+      categoryId: defaults.categoryId || undefined,
+      rating: defaults.rating ? Number(defaults.rating) : undefined,
+      body: defaults.body,
+      tags: defaults.tags,
+    },
+  });
+
+  const isPending = isActionPending || isTransitionPending;
+  const rating = watch("rating");
+  const categoryId = watch("categoryId");
+
+  useEffect(() => {
+    if (state.error) {
+      toast.error(state.error);
+    }
+  }, [state.error]);
+
+  function onValid() {
+    if (!formRef.current) return;
+    const formData = new FormData(formRef.current);
+    startTransition(() => {
+      formAction(formData);
+    });
+  }
 
   return (
-    <form action={formAction} className="grid max-w-2xl gap-5" noValidate>
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit(onValid)}
+      className="grid max-w-2xl gap-6"
+      noValidate
+    >
       <div className="grid gap-2">
         <Label htmlFor="title">Título de la obra</Label>
-        <Input id="title" name="title" defaultValue={defaults.title} required />
+        <Input id="title" aria-invalid={Boolean(errors.title)} {...register("title")} />
+        {errors.title ? (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.title.message}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="venue">Teatro / lugar</Label>
-          <Input id="venue" name="venue" defaultValue={defaults.venue} />
+          <Input id="venue" {...register("venue")} />
         </div>
 
         <div className="grid gap-2">
           <Label htmlFor="eventDate">Fecha de la función</Label>
-          <Input id="eventDate" name="eventDate" type="date" defaultValue={defaults.eventDate} />
+          <Input id="eventDate" type="date" {...register("eventDate")} />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="categoryId">Categoría</Label>
-          <Select name="categoryId" defaultValue={defaults.categoryId}>
-            <SelectTrigger id="categoryId">
+          <Select
+            value={categoryId}
+            onValueChange={(value) => setValue("categoryId", value, { shouldValidate: true })}
+          >
+            <SelectTrigger id="categoryId" aria-invalid={Boolean(errors.categoryId)}>
               <SelectValue placeholder="Elegí una categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -95,78 +156,70 @@ export function ReviewForm({
               ))}
             </SelectContent>
           </Select>
+          <input type="hidden" name="categoryId" value={categoryId ?? ""} />
+          {errors.categoryId ? (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.categoryId.message}
+            </p>
+          ) : null}
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="rating">Valoración (1 a 5)</Label>
-          <Select name="rating" defaultValue={defaults.rating}>
-            <SelectTrigger id="rating">
-              <SelectValue placeholder="Elegí un puntaje" />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <SelectItem key={value} value={String(value)}>
-                  {value} {value === 1 ? "estrella" : "estrellas"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label id="rating-label">Valoración (1 a 5)</Label>
+          <div role="radiogroup" aria-labelledby="rating-label" className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={rating === value}
+                aria-label={`${value} ${value === 1 ? "estrella" : "estrellas"}`}
+                onClick={() => setValue("rating", value, { shouldValidate: true })}
+                className="rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Star
+                  className={cn(
+                    "size-7 transition-colors",
+                    rating && value <= rating
+                      ? "fill-primary text-primary"
+                      : "fill-transparent text-muted-foreground",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
+          <input type="hidden" name="rating" value={rating ?? ""} />
+          {errors.rating ? (
+            <p role="alert" className="text-sm text-destructive">
+              {errors.rating.message}
+            </p>
+          ) : null}
         </div>
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="body">Texto de la crítica</Label>
-        <Textarea id="body" name="body" rows={10} defaultValue={defaults.body} required />
+        <Textarea id="body" rows={10} aria-invalid={Boolean(errors.body)} {...register("body")} />
+        {errors.body ? (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.body.message}
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-2">
         <Label htmlFor="tags">Palabras clave</Label>
         <Input
           id="tags"
-          name="tags"
           placeholder="drama, teatro independiente, unipersonal"
-          defaultValue={defaults.tags}
+          {...register("tags")}
         />
         <p className="text-sm text-muted-foreground">Separadas por coma.</p>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="images">Imágenes (hasta {MAX_REVIEW_IMAGES})</Label>
+      <ImageUploader existingImages={defaults.images} />
 
-        {defaults.images.length > 0 ? (
-          <div className="flex gap-3">
-            {defaults.images.map((image) => (
-              <Image
-                key={image.storagePath}
-                src={image.storagePath}
-                alt={image.altText ?? ""}
-                width={96}
-                height={96}
-                className="h-24 w-24 rounded-md border border-border object-cover"
-              />
-            ))}
-          </div>
-        ) : null}
-
-        <Input id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple />
-        <p className="text-sm text-muted-foreground">
-          JPG, PNG o WEBP, hasta 5MB cada una.
-          {defaults.images.length > 0 ? " Si subís nuevas, reemplazan a las actuales." : ""}
-        </p>
-
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Input name="imageAlts" placeholder="Descripción de la imagen 1 (accesibilidad)" />
-          <Input name="imageAlts" placeholder="Descripción de la imagen 2 (accesibilidad)" />
-        </div>
-      </div>
-
-      {state.error ? (
-        <p role="alert" className="text-sm text-destructive">
-          {state.error}
-        </p>
-      ) : null}
-
-      <Button type="submit" disabled={isPending} className="justify-self-start">
+      <Button type="submit" disabled={isPending} className="justify-self-start sm:justify-self-end">
         {isPending ? "Guardando…" : submitLabel}
       </Button>
     </form>

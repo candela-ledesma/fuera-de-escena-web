@@ -155,7 +155,7 @@ export async function createReview(
 
   revalidatePath("/panel");
   revalidatePath("/");
-  redirect("/panel");
+  redirect("/panel?saved=created");
 }
 
 export async function updateReviewAction(
@@ -210,7 +210,7 @@ export async function updateReviewAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/critica/${slug}`);
-  redirect("/panel");
+  redirect("/panel?saved=updated");
 }
 
 export async function deleteReviewAction(reviewSlug: string): Promise<void> {

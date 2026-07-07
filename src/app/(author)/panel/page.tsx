@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/config";
 import { ReviewList } from "@/features/reviews/components/review-list";
+import { SavedToast } from "@/features/reviews/components/saved-toast";
 import { getReviewsByAuthor } from "@/features/reviews/queries";
 
 export const metadata: Metadata = {
@@ -22,6 +24,9 @@ export default async function PanelPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <SavedToast />
+      </Suspense>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Críticas</h1>
         <Button asChild>
