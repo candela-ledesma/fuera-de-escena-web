@@ -74,19 +74,19 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByLabel("Categoría").click();
       await page.getByRole("option").first().click();
 
-      await page.getByLabel("Valoración (1 a 5)").click();
-      await page.getByRole("option", { name: `${REVIEW.rating} estrellas` }).click();
+      await page.getByRole("radio", { name: `${REVIEW.rating} estrellas` }).click();
 
       await page.getByLabel("Texto de la crítica").fill(REVIEW.body);
       await page.getByLabel("Palabras clave").fill(REVIEW.tags);
 
       await page
-        .locator("#images")
+        .getByTestId("review-image-input")
         .setInputFiles(path.join(__dirname, "fixtures", "test-image.png"));
       await page.getByPlaceholder("Descripción de la imagen 1 (accesibilidad)").fill(REVIEW.imageAlt);
 
       await page.getByRole("button", { name: "Crear crítica" }).click();
       await expect(page).toHaveURL(/\/panel$/);
+      await expect(page.getByText("Crítica creada.")).toBeVisible();
       await expect(page.getByText(REVIEW.title)).toBeVisible();
       await expect(page.getByText("Borrador").first()).toBeVisible();
     });
@@ -128,6 +128,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByRole("button", { name: "Guardar cambios" }).click();
 
       await expect(page).toHaveURL(/\/panel$/);
+      await expect(page.getByText("Cambios guardados.")).toBeVisible();
       await expect(page.getByText(EDITED_VENUE)).toBeVisible();
     });
 

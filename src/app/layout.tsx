@@ -5,6 +5,8 @@ import "./globals.css";
 
 import type { ReactNode } from "react";
 
+import { Toaster } from "@/components/ui/sonner";
+
 const bodyFont = Jost({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
@@ -29,7 +31,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es" className={`${bodyFont.variable} ${displayFont.variable} antialiased`}>
-      <body className="min-h-dvh bg-background text-foreground">{children}</body>
+      <body className="min-h-dvh bg-background text-foreground">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }
