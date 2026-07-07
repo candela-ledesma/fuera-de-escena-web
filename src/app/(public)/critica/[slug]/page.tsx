@@ -3,6 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { auth } from "@/lib/auth/config";
+import { CommentForm } from "@/features/comments/components/comment-form";
+import { CommentList } from "@/features/comments/components/comment-list";
+import { getApprovedCommentsByReviewId } from "@/features/comments/queries";
 import { getPublishedReviewBySlug, getReviewImages, getReviewTagNames } from "@/features/reviews/queries";
 
 export const revalidate = 0;
@@ -37,10 +41,13 @@ export default async function ReviewDetailPage({
     notFound();
   }
 
-  const [tagNames, images] = await Promise.all([
+  const [tagNames, images, comments, session] = await Promise.all([
     getReviewTagNames(review.id),
     getReviewImages(review.id),
+    getApprovedCommentsByReviewId(review.id),
+    auth(),
   ]);
+  const canModerate = Boolean(session?.user);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -102,6 +109,18 @@ export default async function ReviewDetailPage({
             ))}
           </div>
         ) : null}
+
+        <section className="mt-10 border-t border-border pt-8">
+          <h2 className="font-display text-xl font-semibold text-foreground">Comentarios</h2>
+
+          <div className="mt-4">
+            <CommentList comments={comments} canModerate={canModerate} />
+          </div>
+
+          <div className="mt-6 border-t border-border pt-6">
+            <CommentForm reviewSlug={review.slug} />
+          </div>
+        </section>
       </main>
 
       <footer className="mt-12 flex flex-col items-center gap-2 border-t border-border px-8 py-8 text-center">

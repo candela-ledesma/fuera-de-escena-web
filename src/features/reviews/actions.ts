@@ -4,7 +4,7 @@ import { del, put } from "@vercel/blob";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/config";
+import { requireAuthorSession } from "@/lib/auth/guards";
 
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, reviewFormSchema, slugify } from "./schema";
 import {
@@ -23,16 +23,6 @@ import {
 export type ReviewFormState = {
   error?: string;
 };
-
-async function getAuthenticatedAuthor() {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  return { authorId: session.user.id };
-}
 
 async function resolveUniqueSlug(title: string, excludeReviewId?: string) {
   const base = slugify(title);
@@ -122,7 +112,7 @@ export async function createReview(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { authorId } = await getAuthenticatedAuthor();
+  const { authorId } = await requireAuthorSession();
   const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
 
   const slug = await resolveUniqueSlug(title);
@@ -169,7 +159,7 @@ export async function updateReviewAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { authorId } = await getAuthenticatedAuthor();
+  const { authorId } = await requireAuthorSession();
   const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
@@ -214,7 +204,7 @@ export async function updateReviewAction(
 }
 
 export async function deleteReviewAction(reviewSlug: string): Promise<void> {
-  const { authorId } = await getAuthenticatedAuthor();
+  const { authorId } = await requireAuthorSession();
   const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
@@ -234,7 +224,7 @@ export async function setReviewStatusAction(
   reviewSlug: string,
   status: "draft" | "published",
 ): Promise<void> {
-  const { authorId } = await getAuthenticatedAuthor();
+  const { authorId } = await requireAuthorSession();
   const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
 
   if (!existing) {
