@@ -31,8 +31,7 @@ test.describe("Validación del uploader de imágenes", () => {
     await page.getByRole("button", { name: "Ingresar" }).click();
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
 
-    await page.getByRole("link", { name: "Nueva crítica" }).click();
-    await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
+    await page.goto("/panel/criticas/nueva");
   });
 
   test("rechaza un tipo de archivo no permitido sin romper el formulario", async ({ page }) => {

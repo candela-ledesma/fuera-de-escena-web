@@ -70,7 +70,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
   test("crea, edita, publica, despublica y borra una crítica", async ({ page }) => {
     await test.step("crear la crítica", async () => {
-      await page.getByRole("link", { name: "Nueva crítica" }).click();
+      await page.getByRole("link", { name: "Escribir una crítica" }).click();
       await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
 
       await page.getByLabel("Título de la obra").fill(REVIEW.title);
@@ -234,7 +234,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 test.describe("Vista pública (sin sesión)", () => {
   test("un visitante anónimo no ve el botón de la autora", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "Nueva crítica" })).not.toBeVisible();
+    await expect(page.getByRole("link", { name: "Panel de autora" })).not.toBeVisible();
   });
 
   test("un visitante anónimo no puede borrar comentarios ajenos", async ({ page }) => {

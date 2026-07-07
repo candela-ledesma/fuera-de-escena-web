@@ -75,7 +75,7 @@ export default async function HomePage() {
           {isAuthor ? (
             <div className="flex items-center gap-2">
               <Button asChild size="sm">
-                <Link href="/panel">+ Nueva crítica</Link>
+                <Link href="/panel">Panel de autora</Link>
               </Button>
             </div>
           ) : null}

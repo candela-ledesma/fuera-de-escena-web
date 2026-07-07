@@ -75,7 +75,7 @@ export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
         <p className="font-display text-lg text-foreground">Todavía no hay críticas cargadas.</p>
         <p className="mt-1 text-sm text-muted-foreground">Creá tu primera crítica para verla acá.</p>
         <Button asChild className="mt-4">
-          <Link href="/panel/criticas/nueva">Nueva crítica</Link>
+          <Link href="/panel/criticas/nueva">Escribir una crítica</Link>
         </Button>
       </div>
     );
