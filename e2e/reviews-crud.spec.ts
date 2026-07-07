@@ -151,3 +151,10 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
   });
 });
+
+test.describe("Vista pública (sin sesión)", () => {
+  test("un visitante anónimo no ve el botón de la autora", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "Nueva crítica" })).not.toBeVisible();
+  });
+});
