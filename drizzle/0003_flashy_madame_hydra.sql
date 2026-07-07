@@ -1,0 +1,2 @@
+ALTER TABLE "reactions" DROP CONSTRAINT "reactions_review_type_anon_unique";--> statement-breakpoint
+ALTER TABLE "reactions" ADD CONSTRAINT "reactions_review_anon_unique" UNIQUE("review_id","anon_id");

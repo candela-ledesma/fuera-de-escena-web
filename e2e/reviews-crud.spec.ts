@@ -98,7 +98,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
       await page.getByRole("button", { name: "Crear crítica" }).click();
       await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
-      await expect(page.getByText("Crítica creada.")).toBeVisible();
+      await expect(page.getByText("Crítica creada.").first()).toBeVisible();
       await expect(page.getByText(REVIEW.title)).toBeVisible();
       await expect(page.getByText("Borrador").first()).toBeVisible();
     });
@@ -136,12 +136,46 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
     });
 
+    await test.step("reaccionar, reemplazar por otra reacción exclusiva y togglear", async () => {
+      const likeButton = page.getByRole("button", { name: /👍/ });
+      const loveButton = page.getByRole("button", { name: /❤️/ });
+
+      await expect(likeButton).toHaveAccessibleName(/👍 — 0 reacciones/);
+      await expect(loveButton).toHaveAccessibleName(/❤️ — 0 reacciones/);
+
+      await likeButton.click();
+      await expect(likeButton).toHaveAccessibleName(/👍 — 1 reacción\b/);
+      await expect(likeButton).toHaveAttribute("aria-pressed", "true");
+      await page.waitForTimeout(500);
+      await page.reload();
+      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 1 reacción\b/);
+
+      // Elegir otra reacción reemplaza la anterior (modelo exclusivo tipo Facebook).
+      await page.getByRole("button", { name: /❤️/ }).click();
+      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 1 reacción\b/);
+      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
+      await expect(page.getByRole("button", { name: /👍/ })).toHaveAttribute("aria-pressed", "false");
+      await page.waitForTimeout(500);
+      await page.reload();
+      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 1 reacción\b/);
+      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
+
+      // Repetir el mismo tipo activo la apaga (toggle off).
+      await page.getByRole("button", { name: /❤️/ }).click();
+      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 0 reacciones/);
+      await page.waitForTimeout(500);
+      await page.reload();
+      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 0 reacciones/);
+      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
+    });
+
     await test.step("comentar y borrar el comentario", async () => {
       await page.getByLabel("Tu nombre").fill(COMMENT.authorName);
       await page.getByLabel("Comentario").fill(COMMENT.body);
       await page.getByRole("button", { name: "Publicar comentario" }).click();
 
-      await expect(page.getByText("Comentario publicado.")).toBeVisible();
+      await expect(page.getByText("Comentario publicado.").first()).toBeVisible();
       await expect(page.getByText(COMMENT.body)).toBeVisible();
       await expect(page.getByText(COMMENT.authorName)).toBeVisible();
 
@@ -167,7 +201,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByRole("button", { name: "Guardar cambios" }).click();
 
       await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
-      await expect(page.getByText("Cambios guardados.")).toBeVisible();
+      await expect(page.getByText("Cambios guardados.").first()).toBeVisible();
       await expect(page.getByText(EDITED_VENUE)).toBeVisible();
     });
 

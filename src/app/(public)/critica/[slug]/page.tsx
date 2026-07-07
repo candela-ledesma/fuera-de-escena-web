@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/lib/auth/config";
 import { CommentForm } from "@/features/comments/components/comment-form";
 import { CommentList } from "@/features/comments/components/comment-list";
 import { getApprovedCommentsByReviewId } from "@/features/comments/queries";
+import { ReactionButtons } from "@/features/reactions/components/reaction-buttons";
+import { ANON_ID_COOKIE } from "@/features/reactions/schema";
+import { getAnonReactionByReviewId, getReactionCountsByReviewId } from "@/features/reactions/queries";
 import {
   getPublishedReviewBySlug,
   getReviewImagesForDisplay,
@@ -46,13 +50,18 @@ export default async function ReviewDetailPage({
     notFound();
   }
 
-  const [tagNames, images, comments, session] = await Promise.all([
+  const cookieStore = await cookies();
+  const anonId = cookieStore.get(ANON_ID_COOKIE)?.value;
+
+  const [tagNames, images, comments, session, reactionCounts] = await Promise.all([
     getReviewTagNames(review.id),
     getReviewImagesForDisplay(review.id),
     getApprovedCommentsByReviewId(review.id),
     auth(),
+    getReactionCountsByReviewId(review.id),
   ]);
   const canModerate = Boolean(session?.user);
+  const activeReactionType = anonId ? await getAnonReactionByReviewId(review.id, anonId) : null;
 
   return (
     <div className="min-h-dvh bg-background">
@@ -102,6 +111,15 @@ export default async function ReviewDetailPage({
 
         <div className="mt-8 whitespace-pre-wrap font-display text-lg leading-8 text-foreground">
           {review.body}
+        </div>
+
+        <div className="mt-8 border-t border-border pt-6">
+          <ReactionButtons
+            reviewId={review.id}
+            reviewSlug={review.slug}
+            counts={reactionCounts}
+            activeType={activeReactionType}
+          />
         </div>
 
         {tagNames.length > 0 ? (
