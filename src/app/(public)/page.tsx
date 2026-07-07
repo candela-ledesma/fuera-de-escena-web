@@ -132,7 +132,17 @@ export default async function HomePage() {
                   href={`/critica/${review.slug}`}
                   className="group relative aspect-square overflow-hidden rounded-md bg-[#2A1A14] text-left shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#C9A84C_0%,#8A3F35_38%,#2A1A14_100%)]" />
+                  {review.coverImageUrl ? (
+                    <Image
+                      src={review.coverImageUrl}
+                      alt={review.coverImageAlt ?? review.title}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,#C9A84C_0%,#8A3F35_38%,#2A1A14_100%)]" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1A0A05]/90 via-[#1A0A05]/25 to-transparent transition-opacity group-hover:from-[#1A0A05]/95" />
                   <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
                     {review.rating ? (

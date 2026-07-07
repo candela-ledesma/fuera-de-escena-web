@@ -21,6 +21,13 @@ export const reviewFormSchema = z.object({
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0),
     ),
+  coverIndex: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_REVIEW_IMAGES - 1)
+    .optional()
+    .default(0),
 });
 
 export function slugify(value: string): string {

@@ -6,6 +6,7 @@ import {
   timestamp,
   smallint,
   date,
+  boolean,
   primaryKey,
   unique,
   index,
@@ -60,6 +61,7 @@ export const reviewImages = pgTable("review_images", {
   storagePath: text("storage_path").notNull(),
   altText: text("alt_text"),
   position: smallint("position").notNull(),
+  isCover: boolean("is_cover").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   unique("review_images_review_id_position_unique").on(table.reviewId, table.position),

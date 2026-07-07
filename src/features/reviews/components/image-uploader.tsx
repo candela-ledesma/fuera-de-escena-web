@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { Star, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES } from "..
 export type ExistingImage = {
   storagePath: string;
   altText: string | null;
+  isCover: boolean;
 };
 
 type Slot = {
@@ -31,6 +32,11 @@ function slotsFromExisting(images: ExistingImage[]): Slot[] {
   }));
 }
 
+function initialCoverIndex(images: ExistingImage[]): number {
+  const index = images.findIndex((image) => image.isCover);
+  return index >= 0 ? index : 0;
+}
+
 function validateFile(file: File): string | null {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
     return "Solo se aceptan imágenes JPG, PNG o WEBP.";
@@ -45,10 +51,12 @@ function validateFile(file: File): string | null {
 
 export function ImageUploader({ existingImages = [] }: { existingImages?: ExistingImage[] }) {
   const [slots, setSlots] = useState<Slot[]>(() => slotsFromExisting(existingImages));
+  const [coverIndex, setCoverIndex] = useState(() => initialCoverIndex(existingImages));
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropzoneId = useId();
+  const coverGroupName = useId();
 
   useEffect(() => {
     return () => {
@@ -93,8 +101,16 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
 
   function removeSlot(key: string) {
     setSlots((current) => {
-      const target = current.find((slot) => slot.key === key);
+      const removedIndex = current.findIndex((slot) => slot.key === key);
+      const target = current[removedIndex];
       if (target?.file) URL.revokeObjectURL(target.previewUrl);
+
+      setCoverIndex((currentCover) => {
+        if (removedIndex < currentCover) return currentCover - 1;
+        if (removedIndex === currentCover) return 0;
+        return currentCover;
+      });
+
       return current.filter((slot) => slot.key !== key);
     });
     setError(null);
@@ -127,34 +143,53 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
       <Label>Imágenes (hasta {MAX_REVIEW_IMAGES})</Label>
 
       {slots.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {slots.map((slot, index) => (
-            <div key={slot.key} className="grid gap-2">
-              <div className="group relative aspect-square overflow-hidden rounded-md border border-border bg-secondary">
-                <Image
-                  src={slot.previewUrl}
-                  alt={slot.altText || `Imagen ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  unoptimized={Boolean(slot.file)}
+        <div className="grid gap-4 sm:grid-cols-2" role="radiogroup" aria-label="Imagen de portada">
+          {slots.map((slot, index) => {
+            const isCover = index === coverIndex;
+
+            return (
+              <div key={slot.key} className="grid gap-2">
+                <div className="group relative aspect-square overflow-hidden rounded-md border border-border bg-secondary">
+                  <Image
+                    src={slot.previewUrl}
+                    alt={slot.altText || `Imagen ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    unoptimized={Boolean(slot.file)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSlot(slot.key)}
+                    aria-label={`Eliminar imagen ${index + 1}`}
+                    className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+                <Input
+                  aria-label={`Descripción de la imagen ${index + 1} (accesibilidad)`}
+                  placeholder={`Descripción de la imagen ${index + 1} (accesibilidad)`}
+                  value={slot.altText}
+                  onChange={(event) => updateAltText(slot.key, event.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => removeSlot(slot.key)}
-                  aria-label={`Eliminar imagen ${index + 1}`}
-                  className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
-                >
-                  <X className="size-3.5" />
-                </button>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name={coverGroupName}
+                    role="radio"
+                    aria-checked={isCover}
+                    checked={isCover}
+                    onChange={() => setCoverIndex(index)}
+                    className="size-4 accent-primary"
+                  />
+                  <span className={cn("flex items-center gap-1", isCover ? "text-primary font-medium" : "text-muted-foreground")}>
+                    <Star className={cn("size-3.5", isCover && "fill-primary")} />
+                    Marcar como portada
+                  </span>
+                </label>
               </div>
-              <Input
-                aria-label={`Descripción de la imagen ${index + 1} (accesibilidad)`}
-                placeholder={`Descripción de la imagen ${index + 1} (accesibilidad)`}
-                value={slot.altText}
-                onChange={(event) => updateAltText(slot.key, event.target.value)}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : null}
 
@@ -209,6 +244,7 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
       {newFiles.map((slot) => (
         <input key={`alt-${slot.key}`} type="hidden" name="imageAlts" value={slot.altText} />
       ))}
+      <input type="hidden" name="coverIndex" value={coverIndex} />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
   insertTags,
   replaceReviewImages,
   replaceReviewTags,
+  setCoverImageByPosition,
   slugExists,
   updateReview,
 } from "./queries";
@@ -58,6 +59,7 @@ function parseForm(formData: FormData) {
     rating: formData.get("rating"),
     body: formData.get("body"),
     tags: formData.get("tags") || undefined,
+    coverIndex: formData.get("coverIndex") || undefined,
   });
 }
 
@@ -73,7 +75,7 @@ function validateImageFile(file: File): string | null {
   return null;
 }
 
-async function resolveNewImages(formData: FormData, slug: string) {
+async function resolveNewImages(formData: FormData, slug: string, coverIndex: number) {
   const files = formData
     .getAll("images")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
@@ -88,6 +90,8 @@ async function resolveNewImages(formData: FormData, slug: string) {
     if (error) return { error };
   }
 
+  const resolvedCoverIndex = coverIndex < files.length ? coverIndex : 0;
+
   const uploaded = await Promise.all(
     files.map(async (file, index) => {
       const blob = await put(`reviews/${slug}-${Date.now()}-${index}`, file, {
@@ -95,7 +99,12 @@ async function resolveNewImages(formData: FormData, slug: string) {
         addRandomSuffix: true,
       });
 
-      return { storagePath: blob.url, altText: altTexts[index] ?? "", position: index + 1 };
+      return {
+        storagePath: blob.url,
+        altText: altTexts[index] ?? "",
+        position: index + 1,
+        isCover: index === resolvedCoverIndex,
+      };
     }),
   );
 
@@ -113,12 +122,12 @@ export async function createReview(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
+  const { title, venue, eventDate, categoryId, rating, body, tags, coverIndex } = parsed.data;
 
   const slug = await resolveUniqueSlug(title);
   const tagIds = await resolveTagIds(tags);
 
-  const imagesResult = await resolveNewImages(formData, slug);
+  const imagesResult = await resolveNewImages(formData, slug, coverIndex);
 
   if (imagesResult.error) {
     return { error: imagesResult.error };
@@ -166,7 +175,7 @@ export async function updateReviewAction(
     return { error: "La crítica no existe." };
   }
 
-  const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
+  const { title, venue, eventDate, categoryId, rating, body, tags, coverIndex } = parsed.data;
 
   const slug = title === existing.title ? existing.slug : await resolveUniqueSlug(title, existing.id);
   const tagIds = await resolveTagIds(tags);
@@ -174,7 +183,7 @@ export async function updateReviewAction(
   const newFiles = formData.getAll("images").filter((entry) => entry instanceof File && entry.size > 0);
 
   if (newFiles.length > 0) {
-    const imagesResult = await resolveNewImages(formData, slug);
+    const imagesResult = await resolveNewImages(formData, slug, coverIndex);
 
     if (imagesResult.error) {
       return { error: imagesResult.error };
@@ -183,6 +192,8 @@ export async function updateReviewAction(
     const previousImages = await getReviewImages(existing.id);
     await Promise.all(previousImages.map((image) => del(image.storagePath)));
     await replaceReviewImages(existing.id, imagesResult.images ?? []);
+  } else {
+    await setCoverImageByPosition(existing.id, coverIndex + 1);
   }
 
   await updateReview(existing.id, {
