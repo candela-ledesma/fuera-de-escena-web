@@ -33,9 +33,11 @@ export default async function PanelPage() {
       </Suspense>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Críticas</h1>
-        <Button asChild>
-          <Link href="/panel/criticas/nueva">Nueva crítica</Link>
-        </Button>
+        {reviews.length > 0 ? (
+          <Button asChild>
+            <Link href="/panel/criticas/nueva">Escribir una crítica</Link>
+          </Button>
+        ) : null}
       </div>
 
       <DashboardStats {...stats} />

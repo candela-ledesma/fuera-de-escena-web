@@ -104,8 +104,17 @@ export function ReviewForm({
   function onValid() {
     if (!formRef.current) return;
     const formData = new FormData(formRef.current);
-    startTransition(() => {
-      formAction(formData);
+    startTransition(async () => {
+      try {
+        await formAction(formData);
+      } catch {
+        // Un error no controlado del servidor (ej. límite de tamaño del
+        // request, timeout, corte de red) no debe crashear la página con
+        // el error genérico de Next.js: mostramos un mensaje accionable.
+        toast.error(
+          "No se pudo guardar la crítica. Si subiste imágenes muy pesadas, probá con archivos más livianos.",
+        );
+      }
     });
   }
 
