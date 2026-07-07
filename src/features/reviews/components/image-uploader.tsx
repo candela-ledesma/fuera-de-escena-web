@@ -140,12 +140,18 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
 
   return (
     <div className="grid gap-3">
-      <Label>Imágenes (hasta {MAX_REVIEW_IMAGES})</Label>
+      <div className="flex items-center justify-between">
+        <Label>Imágenes (hasta {MAX_REVIEW_IMAGES})</Label>
+        <span className="text-sm text-muted-foreground">
+          {slots.length} / {MAX_REVIEW_IMAGES}
+        </span>
+      </div>
 
       {slots.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2" role="radiogroup" aria-label="Imagen de portada">
           {slots.map((slot, index) => {
             const isCover = index === coverIndex;
+            const altId = `${coverGroupName}-alt-${index}`;
 
             return (
               <div key={slot.key} className="grid gap-2">
@@ -159,6 +165,21 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
                   />
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={isCover}
+                    onClick={() => setCoverIndex(index)}
+                    className={cn(
+                      "absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors",
+                      isCover
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-primary/60 bg-background/80 text-primary hover:bg-background",
+                    )}
+                  >
+                    <Star className={cn("size-3", isCover && "fill-primary-foreground")} />
+                    {isCover ? "Portada" : "Hacer portada"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => removeSlot(slot.key)}
                     aria-label={`Eliminar imagen ${index + 1}`}
                     className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-foreground/70 text-background opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
@@ -166,27 +187,17 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
                     <X className="size-3.5" />
                   </button>
                 </div>
+                <Label htmlFor={altId}>Texto alternativo</Label>
                 <Input
+                  id={altId}
                   aria-label={`Descripción de la imagen ${index + 1} (accesibilidad)`}
                   placeholder={`Descripción de la imagen ${index + 1} (accesibilidad)`}
                   value={slot.altText}
                   onChange={(event) => updateAltText(slot.key, event.target.value)}
                 />
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name={coverGroupName}
-                    role="radio"
-                    aria-checked={isCover}
-                    checked={isCover}
-                    onChange={() => setCoverIndex(index)}
-                    className="size-4 accent-primary"
-                  />
-                  <span className={cn("flex items-center gap-1", isCover ? "text-primary font-medium" : "text-muted-foreground")}>
-                    <Star className={cn("size-3.5", isCover && "fill-primary")} />
-                    Marcar como portada
-                  </span>
-                </label>
+                {slot.altText.trim() === "" ? (
+                  <p className="text-xs text-muted-foreground">Falta el texto alternativo</p>
+                ) : null}
               </div>
             );
           })}

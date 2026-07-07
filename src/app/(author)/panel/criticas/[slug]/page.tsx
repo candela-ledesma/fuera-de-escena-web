@@ -49,6 +49,9 @@ export default async function EditReviewPage({
         categories={categories}
         action={boundAction}
         submitLabel="Guardar cambios"
+        status={review.status}
+        reviewId={review.id}
+        reviewSlug={review.slug}
         defaults={{
           title: review.title,
           venue: review.venue ?? "",

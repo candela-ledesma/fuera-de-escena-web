@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Star } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,13 @@ import {
 import { cn } from "@/lib/utils";
 
 import type { ReviewFormState } from "../actions";
+import { saveDraftAction } from "../actions";
 import { reviewFormSchema } from "../schema";
 import { ImageUploader, type ExistingImage } from "./image-uploader";
+import { StarRating } from "./star-rating";
+import { TagsInput } from "./tags-input";
+
+const AUTOSAVE_DEBOUNCE_MS = 4000;
 
 type Category = { id: string; name: string };
 
@@ -62,15 +68,24 @@ export function ReviewForm({
   defaults = emptyDefaults,
   action,
   submitLabel,
+  status,
+  reviewId,
+  reviewSlug,
 }: {
   categories: Category[];
   defaults?: ReviewDefaults;
   action: (state: ReviewFormState, formData: FormData) => Promise<ReviewFormState>;
   submitLabel: string;
+  status?: "draft" | "published";
+  reviewId?: string;
+  reviewSlug?: string;
 }) {
+  const router = useRouter();
   const [state, formAction, isActionPending] = useActionState(action, {});
   const [isTransitionPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const draftIdRef = useRef<string | null>(reviewId ?? null);
+  const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const {
     register,
@@ -92,14 +107,62 @@ export function ReviewForm({
   });
 
   const isPending = isActionPending || isTransitionPending;
+  const isPublished = status === "published";
+  const submitButtonLabel = isPublished ? "Guardar cambios (en vivo)" : submitLabel;
+  const title = watch("title");
+  const venue = watch("venue");
+  const eventDate = watch("eventDate");
   const rating = watch("rating");
   const categoryId = watch("categoryId");
+  const body = watch("body");
+  const tags = watch("tags");
+  const wordCount = useMemo(() => {
+    const trimmed = body?.trim();
+    return trimmed ? trimmed.split(/\s+/).length : 0;
+  }, [body]);
 
   useEffect(() => {
     if (state.error) {
       toast.error(state.error);
     }
   }, [state.error]);
+
+  useEffect(() => {
+    const hasContent = Boolean(title?.trim() || body?.trim());
+    if (!hasContent) return;
+
+    const timer = setTimeout(() => {
+      setAutosaveState("saving");
+      const draftData = new FormData();
+      draftData.set("title", title ?? "");
+      draftData.set("venue", venue ?? "");
+      draftData.set("eventDate", eventDate ?? "");
+      draftData.set("categoryId", categoryId ?? "");
+      draftData.set("rating", rating ? String(rating) : "");
+      draftData.set("body", body ?? "");
+      draftData.set("tags", tags ?? "");
+
+      saveDraftAction(draftIdRef.current, draftData)
+        .then((result) => {
+          if ("error" in result) {
+            setAutosaveState("error");
+            return;
+          }
+
+          const isFirstSave = draftIdRef.current === null;
+          draftIdRef.current = result.id;
+          setAutosaveState("saved");
+
+          if (isFirstSave && !reviewId) {
+            router.replace(`/panel/criticas/${result.slug}`);
+          }
+        })
+        .catch(() => setAutosaveState("error"));
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, venue, eventDate, categoryId, rating, body, tags]);
 
   function onValid() {
     if (!formRef.current) return;
@@ -125,6 +188,24 @@ export function ReviewForm({
       className="grid max-w-2xl gap-6"
       noValidate
     >
+      {status ? (
+        <div className="flex items-center gap-3 text-sm">
+          <span
+            className={cn(
+              "rounded-full px-2.5 py-1 font-medium",
+              isPublished ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+            )}
+          >
+            {isPublished ? "Publicada · editando" : "Borrador"}
+          </span>
+          {isPublished && reviewSlug ? (
+            <Link href={`/critica/${reviewSlug}`} className="text-primary underline underline-offset-2">
+              Ver en el sitio
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-2">
         <Label htmlFor="title">Título de la obra</Label>
         <Input id="title" aria-invalid={Boolean(errors.title)} {...register("title")} />
@@ -154,7 +235,7 @@ export function ReviewForm({
             value={categoryId}
             onValueChange={(value) => setValue("categoryId", value, { shouldValidate: true })}
           >
-            <SelectTrigger id="categoryId" aria-invalid={Boolean(errors.categoryId)}>
+            <SelectTrigger id="categoryId" className="w-full" aria-invalid={Boolean(errors.categoryId)}>
               <SelectValue placeholder="Elegí una categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -174,29 +255,10 @@ export function ReviewForm({
         </div>
 
         <div className="grid gap-2">
-          <Label id="rating-label">Valoración (1 a 5)</Label>
-          <div role="radiogroup" aria-labelledby="rating-label" className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={rating === value}
-                aria-label={`${value} ${value === 1 ? "estrella" : "estrellas"}`}
-                onClick={() => setValue("rating", value, { shouldValidate: true })}
-                className="rounded-sm p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Star
-                  className={cn(
-                    "size-7 transition-colors",
-                    rating && value <= rating
-                      ? "fill-primary text-primary"
-                      : "fill-transparent text-muted-foreground",
-                  )}
-                />
-              </button>
-            ))}
-          </div>
+          <StarRating
+            value={rating}
+            onChange={(value) => setValue("rating", value, { shouldValidate: true })}
+          />
           <input type="hidden" name="rating" value={rating ?? ""} />
           {errors.rating ? (
             <p role="alert" className="text-sm text-destructive">
@@ -208,7 +270,15 @@ export function ReviewForm({
 
       <div className="grid gap-2">
         <Label htmlFor="body">Texto de la crítica</Label>
-        <Textarea id="body" rows={10} aria-invalid={Boolean(errors.body)} {...register("body")} />
+        <div className="max-w-[72ch]">
+          <Textarea
+            id="body"
+            className="min-h-48"
+            aria-invalid={Boolean(errors.body)}
+            {...register("body")}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">{wordCount} palabras</p>
         {errors.body ? (
           <p role="alert" className="text-sm text-destructive">
             {errors.body.message}
@@ -217,20 +287,27 @@ export function ReviewForm({
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="tags">Palabras clave</Label>
-        <Input
-          id="tags"
-          placeholder="drama, teatro independiente, unipersonal"
-          {...register("tags")}
+        <Label htmlFor="tags-input">Palabras clave</Label>
+        <TagsInput
+          id="tags-input"
+          value={tags ?? ""}
+          onChange={(value) => setValue("tags", value, { shouldValidate: true })}
         />
-        <p className="text-sm text-muted-foreground">Separadas por coma.</p>
+        <input type="hidden" name="tags" value={tags ?? ""} />
       </div>
 
       <ImageUploader existingImages={defaults.images} />
 
-      <Button type="submit" disabled={isPending} className="justify-self-start sm:justify-self-end">
-        {isPending ? "Guardando…" : submitLabel}
-      </Button>
+      <div className="sticky bottom-0 -mx-6 flex items-center justify-between gap-4 border-t border-border bg-background px-6 py-3">
+        <span className="text-sm text-muted-foreground">
+          {autosaveState === "saving" ? "Guardando…" : null}
+          {autosaveState === "saved" ? "Guardado hace un momento" : null}
+          {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
+        </span>
+        <Button type="submit" disabled={isPending} className="justify-self-end">
+          {isPending ? "Guardando…" : submitButtonLabel}
+        </Button>
+      </div>
     </form>
   );
 }
