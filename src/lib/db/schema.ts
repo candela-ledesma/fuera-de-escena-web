@@ -108,6 +108,6 @@ export const reactions = pgTable("reactions", {
   anonId: text("anon_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
-  unique("reactions_review_type_anon_unique").on(table.reviewId, table.type, table.anonId),
+  unique("reactions_review_anon_unique").on(table.reviewId, table.anonId),
   index("idx_reactions_review").on(table.reviewId),
 ]);
