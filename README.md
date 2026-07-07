@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fuera de Escena Web
 
-## Getting Started
+Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. Incluye un panel privado para la autora y una vista pública para lectores.
 
-First, run the development server:
+## Características
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Publicación de críticas con estado borrador/publicada.
+- Subida de hasta 2 imágenes por crítica (con portada seleccionable).
+- Sistema de etiquetas y categorías.
+- Comentarios públicos en cada crítica.
+- Reacciones anónimas (like, love, wow, applause).
+- Panel de autora con login y CRUD completo.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js 15 (App Router)
+- React 19 + TypeScript
+- Tailwind CSS + componentes UI reutilizables
+- NextAuth (credenciales)
+- Drizzle ORM + PostgreSQL (Neon)
+- Vercel Blob para almacenamiento de imágenes
+- Playwright para pruebas end-to-end
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Requisitos
 
-## Learn More
+- Node.js 20+
+- npm 10+
+- Base de datos PostgreSQL accesible por `DATABASE_URL`
 
-To learn more about Next.js, take a look at the following resources:
+## Configuración local
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Instalar dependencias:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   npm ci
+   ```
 
-## Deploy on Vercel
+2. Crear `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/.env.local` con variables mínimas:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   DATABASE_URL=postgresql://...
+   AUTH_SECRET=...
+   BLOB_READ_WRITE_TOKEN=...
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   # Solo para e2e
+   TEST_AUTHOR_EMAIL=...
+   TEST_AUTHOR_PASSWORD=...
+   ```
+
+3. Ejecutar migraciones y semillas:
+
+   ```bash
+   npm run db:migrate
+   npm run db:seed:categories
+   npm run db:create-author -- autora@dominio.com passwordSegura "Nombre de autora"
+   ```
+
+4. Iniciar el entorno de desarrollo:
+
+   ```bash
+   npm run dev
+   ```
+
+## Scripts disponibles
+
+- `npm run dev`: servidor de desarrollo.
+- `npm run build`: build de producción.
+- `npm run start`: correr build en producción.
+- `npm run lint`: lint con ESLint.
+- `npm run test:e2e`: suite E2E con Playwright.
+- `npm run db:generate`: generar migraciones con Drizzle.
+- `npm run db:migrate`: aplicar migraciones.
+- `npm run db:studio`: abrir Drizzle Studio.
+- `npm run db:seed:categories`: poblar categorías iniciales.
+- `npm run db:create-author -- <email> <password> [displayName]`: crear autora.
+
+## Estructura principal
+
+- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/app`: rutas públicas, login y panel de autora.
+- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/features`: lógica por dominio (`reviews`, `comments`, `reactions`, `auth`).
+- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/lib`: auth, base de datos y utilidades.
+- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/e2e`: pruebas end-to-end con Playwright.
+- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/drizzle`: migraciones SQL.
