@@ -137,37 +137,39 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("reaccionar, reemplazar por otra reacción exclusiva y togglear", async () => {
-      const likeButton = page.getByRole("button", { name: /👍/ });
-      const loveButton = page.getByRole("button", { name: /❤️/ });
+      const likeButton = page.getByRole("button", { name: "Me gusta" });
+      const loveButton = page.getByRole("button", { name: /^Me encanta/ });
 
-      await expect(likeButton).toHaveAccessibleName(/👍 — 0 reacciones/);
-      await expect(loveButton).toHaveAccessibleName(/❤️ — 0 reacciones/);
+      await expect(likeButton).toBeVisible();
+      await expect(loveButton).toBeVisible();
 
       await likeButton.click();
-      await expect(likeButton).toHaveAccessibleName(/👍 — 1 reacción\b/);
-      await expect(likeButton).toHaveAttribute("aria-pressed", "true");
+      const likeActive = page.getByRole("button", { name: "Me gusta · 1" });
+      await expect(likeActive).toBeVisible();
+      await expect(likeActive).toHaveAttribute("aria-pressed", "true");
       await page.waitForTimeout(500);
       await page.reload();
-      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 1 reacción\b/);
+      await expect(page.getByRole("button", { name: "Me gusta · 1" })).toBeVisible();
 
       // Elegir otra reacción reemplaza la anterior (modelo exclusivo tipo Facebook).
-      await page.getByRole("button", { name: /❤️/ }).click();
-      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 1 reacción\b/);
-      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAttribute("aria-pressed", "true");
-      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
-      await expect(page.getByRole("button", { name: /👍/ })).toHaveAttribute("aria-pressed", "false");
+      await page.getByRole("button", { name: /^Me encanta/ }).click();
+      const loveActive = page.getByRole("button", { name: "Me encanta · 1" });
+      await expect(loveActive).toBeVisible();
+      await expect(loveActive).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Me gusta" })).toHaveAttribute("aria-pressed", "false");
       await page.waitForTimeout(500);
       await page.reload();
-      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 1 reacción\b/);
-      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
+      await expect(page.getByRole("button", { name: "Me encanta · 1" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
 
       // Repetir el mismo tipo activo la apaga (toggle off).
-      await page.getByRole("button", { name: /❤️/ }).click();
-      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 0 reacciones/);
+      await page.getByRole("button", { name: /^Me encanta/ }).click();
+      await expect(page.getByRole("button", { name: "Me encanta" })).toBeVisible();
       await page.waitForTimeout(500);
       await page.reload();
-      await expect(page.getByRole("button", { name: /❤️/ })).toHaveAccessibleName(/❤️ — 0 reacciones/);
-      await expect(page.getByRole("button", { name: /👍/ })).toHaveAccessibleName(/👍 — 0 reacciones/);
+      await expect(page.getByRole("button", { name: "Me encanta" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
     });
 
     await test.step("comentar y borrar el comentario", async () => {
@@ -266,6 +268,61 @@ test.describe("Vista pública (sin sesión)", () => {
       await expect(
         page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }),
       ).not.toBeVisible();
+    } finally {
+      await db.delete(reviews).where(eq(reviews.id, review.id));
+    }
+  });
+
+  test("un visitante anónimo puede reaccionar sin ver contadores en cero", async ({ page }) => {
+    const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
+    const [category] = await db.select({ id: categories.id }).from(categories).limit(1);
+
+    const [review] = await db
+      .insert(reviews)
+      .values({
+        authorId: author.id,
+        categoryId: category.id,
+        title: "Crítica de prueba para reacciones anónimas",
+        body: "Cuerpo de prueba.",
+        slug: "critica-prueba-reacciones-anonimas",
+        rating: 4,
+        status: "published",
+        publishedAt: new Date(),
+      })
+      .returning({ id: reviews.id, slug: reviews.slug });
+
+    try {
+      await page.goto(`/critica/${review.slug}`);
+
+      await expect(page.getByText("¿Qué te pareció la obra?")).toBeVisible();
+
+      // Sin reacciones todavía, no debe verse ningún contador en 0.
+      const wowButton = page.getByRole("button", { name: "Me sorprende" });
+      await expect(wowButton).toBeVisible();
+      await expect(page.getByText(/^0$/)).not.toBeVisible();
+      await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
+
+      await wowButton.click();
+      const wowActive = page.getByRole("button", { name: "Me sorprende · 1" });
+      await expect(wowActive).toBeVisible();
+      await expect(wowActive).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByText("1 persona reaccionó")).toBeVisible();
+
+      await page.waitForTimeout(500);
+      await page.reload();
+
+      await expect(page.getByRole("button", { name: "Me sorprende · 1" })).toBeVisible();
+      await expect(page.getByText("1 persona reaccionó")).toBeVisible();
+
+      // Togglear de nuevo la apaga y vuelve a ocultar el contador y la prueba social.
+      await page.getByRole("button", { name: "Me sorprende · 1" }).click();
+      await expect(page.getByRole("button", { name: "Me sorprende" })).toBeVisible();
+      await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
+
+      await page.waitForTimeout(500);
+      await page.reload();
+      await expect(page.getByRole("button", { name: "Me sorprende" })).toBeVisible();
+      await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
     } finally {
       await db.delete(reviews).where(eq(reviews.id, review.id));
     }
