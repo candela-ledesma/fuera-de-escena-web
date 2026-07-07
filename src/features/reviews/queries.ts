@@ -80,6 +80,16 @@ export async function getReviewBySlugForAuthor(slug: string, authorId: string) {
   return review ?? null;
 }
 
+export async function getReviewByIdForAuthor(reviewId: string, authorId: string) {
+  const [review] = await db
+    .select()
+    .from(reviews)
+    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId)))
+    .limit(1);
+
+  return review ?? null;
+}
+
 export async function getPublishedReviews() {
   return db
     .select({
@@ -225,6 +235,27 @@ export async function updateReview(
     .update(reviews)
     .set({ ...review, updatedAt: new Date() })
     .where(eq(reviews.id, reviewId));
+}
+
+export async function updateReviewDraftFields(
+  reviewId: string,
+  authorId: string,
+  fields: {
+    title: string;
+    venue: string | null;
+    eventDate: string | null;
+    categoryId: string | null;
+    rating: number | null;
+    body: string;
+  },
+) {
+  const [updated] = await db
+    .update(reviews)
+    .set({ ...fields, updatedAt: new Date() })
+    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId)))
+    .returning({ id: reviews.id, slug: reviews.slug, updatedAt: reviews.updatedAt });
+
+  return updated ?? null;
 }
 
 export async function deleteReview(reviewId: string) {

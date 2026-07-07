@@ -30,6 +30,25 @@ export const reviewFormSchema = z.object({
     .default(0),
 });
 
+export const draftFormSchema = z.object({
+  title: z.string().trim().max(200).optional().default(""),
+  venue: z.string().trim().max(200).optional(),
+  eventDate: z.string().trim().optional(),
+  categoryId: z.string().trim().optional(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  body: z.string().trim().optional().default(""),
+  tags: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) =>
+      (value ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0),
+    ),
+});
+
 export function slugify(value: string): string {
   return value
     .normalize("NFD")

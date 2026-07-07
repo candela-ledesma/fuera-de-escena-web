@@ -9,11 +9,12 @@ import { auth } from "@/lib/auth/config";
 import { requireAuthorSession } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, reviewFormSchema, slugify } from "./schema";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, draftFormSchema, reviewFormSchema, slugify } from "./schema";
 import {
   deleteReview,
   findTagsByName,
   getReviewBySlugForAuthor,
+  getReviewByIdForAuthor,
   getReviewImages,
   incrementReviewViewCount,
   insertReview,
@@ -24,6 +25,7 @@ import {
   setCoverImageByPosition,
   slugExists,
   updateReview,
+  updateReviewDraftFields,
 } from "./queries";
 
 export type ReviewFormState = {
@@ -187,7 +189,7 @@ export async function updateReviewAction(
 
   const { title, venue, eventDate, categoryId, rating, body, tags, coverIndex } = parsed.data;
 
-  const slug = title === existing.title ? existing.slug : await resolveUniqueSlug(title, existing.id);
+  const slug = existing.slug;
   const tagIds = await resolveTagIds(tags);
 
   const newFiles = formData.getAll("images").filter((entry) => entry instanceof File && entry.size > 0);
@@ -277,6 +279,83 @@ export async function setReviewStatusAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/critica/${reviewSlug}`);
+}
+
+export type SaveDraftResult = { id: string; slug: string; savedAt: string } | { error: string };
+
+/**
+ * Autosave: no hace revalidatePath ni redirect (no navega), y usa un
+ * schema parcial porque un borrador puede estar incompleto. No toca
+ * imágenes ni el estado publicado/despublicado de una crítica existente.
+ */
+export async function saveDraftAction(
+  reviewId: string | null,
+  formData: FormData,
+): Promise<SaveDraftResult> {
+  const parsed = draftFormSchema.safeParse({
+    title: formData.get("title") || undefined,
+    venue: formData.get("venue") || undefined,
+    eventDate: formData.get("eventDate") || undefined,
+    categoryId: formData.get("categoryId") || undefined,
+    rating: formData.get("rating") || undefined,
+    body: formData.get("body") || undefined,
+    tags: formData.get("tags") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: "No se pudo guardar el borrador." };
+  }
+
+  const { authorId } = await requireAuthorSession();
+  const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
+
+  const fields = {
+    title,
+    venue: venue ?? null,
+    eventDate: eventDate ?? null,
+    categoryId: categoryId ?? null,
+    rating: rating ?? null,
+    body,
+  };
+
+  if (reviewId) {
+    const existing = await getReviewByIdForAuthor(reviewId, authorId);
+
+    if (!existing) {
+      return { error: "El borrador no existe." };
+    }
+
+    const updated = await updateReviewDraftFields(reviewId, authorId, fields);
+
+    if (!updated) {
+      return { error: "No se pudo guardar el borrador." };
+    }
+
+    const tagIds = await resolveTagIds(tags);
+    await replaceReviewTags(reviewId, tagIds);
+
+    return { id: updated.id, slug: updated.slug, savedAt: updated.updatedAt.toISOString() };
+  }
+
+  const slug = await resolveUniqueSlug(title || "sin-titulo");
+  const tagIds = await resolveTagIds(tags);
+
+  const created = await insertReview({
+    authorId,
+    title: title || "Sin título",
+    venue: fields.venue,
+    eventDate: fields.eventDate,
+    categoryId: fields.categoryId,
+    rating: fields.rating,
+    body,
+    slug,
+  });
+
+  if (tagIds.length > 0) {
+    await replaceReviewTags(created.id, tagIds);
+  }
+
+  return { id: created.id, slug: created.slug, savedAt: new Date().toISOString() };
 }
 
 const VIEW_DEDUPE_WINDOW_SECONDS = 60 * 60 * 24;

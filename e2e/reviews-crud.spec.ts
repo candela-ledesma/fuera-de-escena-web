@@ -47,8 +47,14 @@ const COMMENT = {
   body: "Hermosa puesta, me hizo reír y llorar en la misma escena.",
 };
 
+const DRAFT_REVIEW = {
+  title: "Borrador sin publicar para probar autosave",
+  body: "Texto parcial escrito mientras se prueba el autosave del panel.",
+};
+
 async function deleteLeftoverTestReviews() {
   await db.delete(reviews).where(eq(reviews.title, REVIEW.title));
+  await db.delete(reviews).where(eq(reviews.title, DRAFT_REVIEW.title));
 }
 
 test.describe("CRUD de críticas (panel de la autora)", () => {
@@ -194,17 +200,39 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByLabel("Título de la obra")).toHaveValue(REVIEW.title);
       await expect(page.getByLabel("Texto de la crítica")).toHaveValue(REVIEW.body);
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
+      await expect(page.getByText("Publicada · editando")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Ver en el sitio" })).toBeVisible();
 
       const coverRadios = page.getByRole("radiogroup", { name: "Imagen de portada" }).getByRole("radio");
       await expect(coverRadios.nth(0)).not.toBeChecked();
       await expect(coverRadios.nth(1)).toBeChecked();
 
+      const originalSlug = new URL(page.url()).pathname.split("/").pop();
+      const editedTitle = `${REVIEW.title} (editado)`;
+
       await page.getByLabel("Teatro / lugar").fill(EDITED_VENUE);
-      await page.getByRole("button", { name: "Guardar cambios" }).click();
+      await page.getByLabel("Título de la obra").fill(editedTitle);
+      await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
 
       await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
       await expect(page.getByText("Cambios guardados.").first()).toBeVisible();
       await expect(page.getByText(EDITED_VENUE)).toBeVisible();
+
+      await test.step("cambiar el título de una crítica publicada no cambia su slug/URL", async () => {
+        await page.locator("li", { hasText: editedTitle }).getByRole("link", { name: "Editar" }).click();
+        await expect(page).toHaveURL(new RegExp(`/panel/criticas/${originalSlug}$`));
+
+        await page.goto(`/critica/${originalSlug}`);
+        await expect(page.getByRole("heading", { name: editedTitle })).toBeVisible();
+        await page.goto("/panel");
+      });
+
+      // Revertir el título para que el resto del flujo (despublicar, borrar,
+      // cleanup por REVIEW.title) siga operando sobre la misma fila.
+      await page.locator("li", { hasText: editedTitle }).getByRole("link", { name: "Editar" }).click();
+      await page.getByLabel("Título de la obra").fill(REVIEW.title);
+      await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
     });
 
     await test.step("despublicar la crítica", async () => {
@@ -228,6 +256,28 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText(REVIEW.title)).not.toBeVisible();
     });
+  });
+
+  test("el autosave guarda un borrador sin publicar y se recupera al recargar", async ({ page }) => {
+    await page.getByRole("link", { name: "Escribir una crítica" }).click();
+    await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
+
+    await page.getByLabel("Título de la obra").fill(DRAFT_REVIEW.title);
+    await page.getByLabel("Texto de la crítica").fill(DRAFT_REVIEW.body);
+
+    await expect(page.getByText("Guardado hace un momento")).toBeVisible({ timeout: 10_000 });
+    await expect(page).toHaveURL(/\/panel\/criticas\/(?!nueva$).+/);
+
+    await page.reload();
+
+    await expect(page.getByLabel("Título de la obra")).toHaveValue(DRAFT_REVIEW.title);
+    await expect(page.getByLabel("Texto de la crítica")).toHaveValue(DRAFT_REVIEW.body);
+    await expect(page.getByText("Borrador")).toBeVisible();
+
+    await page.goto("/panel");
+    const draftCard = page.locator("li", { hasText: DRAFT_REVIEW.title });
+    await expect(draftCard).toBeVisible();
+    await expect(draftCard.getByText("Borrador", { exact: true })).toBeVisible();
   });
 });
 

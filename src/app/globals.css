@@ -21,6 +21,8 @@
   --input: #dfc5b8;
   --ring: rgba(201, 168, 76, 0.45);
   --radius: 1.25rem;
+  --field-background: #fffdfa;
+  --field-border: rgba(42, 31, 24, 0.22);
 }
 
 @theme inline {
@@ -42,6 +44,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-field-background: var(--field-background);
+  --color-field-border: var(--field-border);
   --font-sans: var(--font-body);
   --font-display: var(--font-display);
   --radius-sm: calc(var(--radius) - 0.25rem);
