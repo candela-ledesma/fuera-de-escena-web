@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,16 @@ export default async function HomePage() {
 
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="mx-auto flex h-[60px] max-w-5xl items-center justify-between gap-4 px-6">
-          <div className="flex items-baseline gap-2">
-            <a href="#" className="no-underline">
+          <div className="flex items-center gap-3">
+            <a href="#" className="flex items-center gap-2 no-underline">
+              <Image
+                src="/brand/logo.png"
+                alt="Fuera de Escena"
+                width={32}
+                height={32}
+                priority
+                className="size-8 shrink-0 rounded-full border border-border object-cover"
+              />
               <span className="font-display text-lg font-semibold tracking-[0.03em] text-foreground">
                 Fuera de <span>Escena</span>
               </span>
@@ -74,7 +83,15 @@ export default async function HomePage() {
       </header>
 
       <section className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-5xl items-center gap-8 px-6 py-6">
+        <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-6">
+          <Image
+            src="/brand/logo.png"
+            alt=""
+            aria-hidden="true"
+            width={96}
+            height={96}
+            className="hidden size-24 shrink-0 rounded-full border border-border object-cover sm:block"
+          />
           <div>
             <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
               <span className="text-sm text-foreground">
