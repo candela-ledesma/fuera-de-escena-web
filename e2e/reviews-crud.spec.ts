@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { test, expect } from "@playwright/test";
 
 import { db } from "../src/lib/db/client";
-import { reviews } from "../src/lib/db/schema";
+import { authors, categories, comments, reviews } from "../src/lib/db/schema";
 
 const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
 const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
@@ -40,6 +40,11 @@ Elenco: Sofia Caporale; Francisco Mayor; Música: Shleper Klezmer. Sala: La Maca
 };
 
 const EDITED_VENUE = "Biblioteca Rivadavia";
+
+const COMMENT = {
+  authorName: "Marina Gómez",
+  body: "Hermosa puesta, me hizo reír y llorar en la misma escena.",
+};
 
 async function deleteLeftoverTestReviews() {
   await db.delete(reviews).where(eq(reviews.title, REVIEW.title));
@@ -112,6 +117,19 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
       await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
+    });
+
+    await test.step("comentar y borrar el comentario", async () => {
+      await page.getByLabel("Tu nombre").fill(COMMENT.authorName);
+      await page.getByLabel("Comentario").fill(COMMENT.body);
+      await page.getByRole("button", { name: "Publicar comentario" }).click();
+
+      await expect(page.getByText("Comentario publicado.")).toBeVisible();
+      await expect(page.getByText(COMMENT.body)).toBeVisible();
+      await expect(page.getByText(COMMENT.authorName)).toBeVisible();
+
+      await page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }).click();
+      await expect(page.getByText(COMMENT.body)).not.toBeVisible();
 
       await page.goto("/panel");
     });
@@ -156,5 +174,41 @@ test.describe("Vista pública (sin sesión)", () => {
   test("un visitante anónimo no ve el botón de la autora", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("link", { name: "Nueva crítica" })).not.toBeVisible();
+  });
+
+  test("un visitante anónimo no puede borrar comentarios ajenos", async ({ page }) => {
+    const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
+    const [category] = await db.select({ id: categories.id }).from(categories).limit(1);
+
+    const [review] = await db
+      .insert(reviews)
+      .values({
+        authorId: author.id,
+        categoryId: category.id,
+        title: "Crítica de prueba para moderación anónima",
+        body: "Cuerpo de prueba.",
+        slug: "critica-prueba-moderacion-anonima",
+        rating: 4,
+        status: "published",
+        publishedAt: new Date(),
+      })
+      .returning({ id: reviews.id, slug: reviews.slug });
+
+    await db.insert(comments).values({
+      reviewId: review.id,
+      authorName: COMMENT.authorName,
+      body: COMMENT.body,
+      status: "approved",
+    });
+
+    try {
+      await page.goto(`/critica/${review.slug}`);
+      await expect(page.getByText(COMMENT.body)).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }),
+      ).not.toBeVisible();
+    } finally {
+      await db.delete(reviews).where(eq(reviews.id, review.id));
+    }
   });
 });
