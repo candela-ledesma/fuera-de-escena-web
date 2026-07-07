@@ -15,6 +15,13 @@
       "when": 1783390324917,
       "tag": "0001_green_punisher",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783392196727,
+      "tag": "0002_naive_arclight",
+      "breakpoints": true
     }
   ]
 }

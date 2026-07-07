@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   smallint,
+  integer,
   date,
   boolean,
   primaryKey,
@@ -47,6 +48,7 @@ export const reviews = pgTable("reviews", {
   slug: text("slug").notNull().unique(),
   status: reviewStatusEnum("status").notNull().default("draft"),
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  viewCount: integer("view_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
