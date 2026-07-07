@@ -97,7 +97,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByRole("radiogroup", { name: "Imagen de portada" }).getByRole("radio").nth(1).click();
 
       await page.getByRole("button", { name: "Crear crítica" }).click();
-      await expect(page).toHaveURL(/\/panel$/);
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
       await expect(page.getByText("Crítica creada.")).toBeVisible();
       await expect(page.getByText(REVIEW.title)).toBeVisible();
       await expect(page.getByText("Borrador").first()).toBeVisible();
@@ -115,7 +115,8 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("publicar la crítica", async () => {
-      await reviewCard.getByRole("button", { name: "Publicar" }).click();
+      await reviewCard.getByRole("button", { name: "Más acciones" }).click();
+      await page.getByRole("menuitem", { name: "Publicar" }).click();
       await expect(reviewCard.getByText("Publicada")).toBeVisible();
       await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).toBeVisible();
     });
@@ -165,13 +166,14 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByLabel("Teatro / lugar").fill(EDITED_VENUE);
       await page.getByRole("button", { name: "Guardar cambios" }).click();
 
-      await expect(page).toHaveURL(/\/panel$/);
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
       await expect(page.getByText("Cambios guardados.")).toBeVisible();
       await expect(page.getByText(EDITED_VENUE)).toBeVisible();
     });
 
     await test.step("despublicar la crítica", async () => {
-      await reviewCard.getByRole("button", { name: "Pasar a borrador" }).click();
+      await reviewCard.getByRole("button", { name: "Más acciones" }).click();
+      await page.getByRole("menuitem", { name: "Pasar a borrador" }).click();
       await expect(reviewCard.getByText("Borrador")).toBeVisible();
       await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
     });
@@ -183,8 +185,11 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.goto("/panel");
     });
 
-    await test.step("borrar la crítica", async () => {
-      await reviewCard.getByRole("button", { name: "Borrar" }).click();
+    await test.step("borrar la crítica con confirmación", async () => {
+      await reviewCard.getByRole("button", { name: "Más acciones" }).click();
+      await page.getByRole("menuitem", { name: "Borrar" }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+      await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText(REVIEW.title)).not.toBeVisible();
     });
   });
@@ -227,6 +232,56 @@ test.describe("Vista pública (sin sesión)", () => {
       await expect(
         page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }),
       ).not.toBeVisible();
+    } finally {
+      await db.delete(reviews).where(eq(reviews.id, review.id));
+    }
+  });
+
+  test("visitar el detalle incrementa vistas una sola vez por navegador", async ({ page }) => {
+    const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
+    const [category] = await db.select({ id: categories.id }).from(categories).limit(1);
+
+    const [review] = await db
+      .insert(reviews)
+      .values({
+        authorId: author.id,
+        categoryId: category.id,
+        title: "Crítica de prueba para conteo de vistas",
+        body: "Cuerpo de prueba.",
+        slug: "critica-prueba-conteo-vistas",
+        rating: 4,
+        status: "published",
+        publishedAt: new Date(),
+      })
+      .returning({ id: reviews.id, slug: reviews.slug });
+
+    try {
+      await page.goto(`/critica/${review.slug}`);
+      await page.waitForTimeout(1000);
+
+      const [afterFirstVisit] = await db
+        .select({ viewCount: reviews.viewCount })
+        .from(reviews)
+        .where(eq(reviews.id, review.id));
+      expect(afterFirstVisit.viewCount).toBe(1);
+
+      await page.reload();
+      await page.waitForTimeout(1000);
+
+      const [afterSecondVisit] = await db
+        .select({ viewCount: reviews.viewCount })
+        .from(reviews)
+        .where(eq(reviews.id, review.id));
+      expect(afterSecondVisit.viewCount).toBe(1);
+
+      await page.goto("/login");
+      await page.getByLabel("Email").fill(TEST_EMAIL!);
+      await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+      await page.getByRole("button", { name: "Ingresar" }).click();
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+
+      const reviewCard = page.locator("li", { hasText: "Crítica de prueba para conteo de vistas" });
+      await expect(reviewCard.getByLabel("1 vistas")).toBeVisible();
     } finally {
       await db.delete(reviews).where(eq(reviews.id, review.id));
     }

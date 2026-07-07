@@ -1,10 +1,13 @@
 "use server";
 
 import { del, put } from "@vercel/blob";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+import { auth } from "@/lib/auth/config";
 import { requireAuthorSession } from "@/lib/auth/guards";
+import { db } from "@/lib/db/client";
 
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, reviewFormSchema, slugify } from "./schema";
 import {
@@ -12,8 +15,10 @@ import {
   findTagsByName,
   getReviewBySlugForAuthor,
   getReviewImages,
+  incrementReviewViewCount,
   insertReview,
   insertTags,
+  isReviewPublished,
   replaceReviewImages,
   replaceReviewTags,
   setCoverImageByPosition,
@@ -133,24 +138,29 @@ export async function createReview(
     return { error: imagesResult.error };
   }
 
-  const review = await insertReview({
-    authorId,
-    title,
-    venue: venue ?? null,
-    eventDate: eventDate ?? null,
-    categoryId,
-    rating,
-    body,
-    slug,
+  await db.transaction(async (tx) => {
+    const review = await insertReview(
+      {
+        authorId,
+        title,
+        venue: venue ?? null,
+        eventDate: eventDate ?? null,
+        categoryId,
+        rating,
+        body,
+        slug,
+      },
+      tx,
+    );
+
+    if (tagIds.length > 0) {
+      await replaceReviewTags(review.id, tagIds, tx);
+    }
+
+    if (imagesResult.images && imagesResult.images.length > 0) {
+      await replaceReviewImages(review.id, imagesResult.images, tx);
+    }
   });
-
-  if (tagIds.length > 0) {
-    await replaceReviewTags(review.id, tagIds);
-  }
-
-  if (imagesResult.images && imagesResult.images.length > 0) {
-    await replaceReviewImages(review.id, imagesResult.images);
-  }
 
   revalidatePath("/panel");
   revalidatePath("/");
@@ -181,6 +191,9 @@ export async function updateReviewAction(
   const tagIds = await resolveTagIds(tags);
 
   const newFiles = formData.getAll("images").filter((entry) => entry instanceof File && entry.size > 0);
+  let newImages: { storagePath: string; altText: string; position: number; isCover: boolean }[] | null =
+    null;
+  let previousImageStoragePaths: string[] = [];
 
   if (newFiles.length > 0) {
     const imagesResult = await resolveNewImages(formData, slug, coverIndex);
@@ -190,23 +203,37 @@ export async function updateReviewAction(
     }
 
     const previousImages = await getReviewImages(existing.id);
-    await Promise.all(previousImages.map((image) => del(image.storagePath)));
-    await replaceReviewImages(existing.id, imagesResult.images ?? []);
-  } else {
-    await setCoverImageByPosition(existing.id, coverIndex + 1);
+    previousImageStoragePaths = previousImages.map((image) => image.storagePath);
+    newImages = imagesResult.images ?? [];
   }
 
-  await updateReview(existing.id, {
-    title,
-    venue: venue ?? null,
-    eventDate: eventDate ?? null,
-    categoryId,
-    rating,
-    body,
-    slug,
+  await db.transaction(async (tx) => {
+    if (newImages) {
+      await replaceReviewImages(existing.id, newImages, tx);
+    } else {
+      await setCoverImageByPosition(existing.id, coverIndex + 1, tx);
+    }
+
+    await updateReview(
+      existing.id,
+      {
+        title,
+        venue: venue ?? null,
+        eventDate: eventDate ?? null,
+        categoryId,
+        rating,
+        body,
+        slug,
+      },
+      tx,
+    );
+
+    await replaceReviewTags(existing.id, tagIds, tx);
   });
 
-  await replaceReviewTags(existing.id, tagIds);
+  if (previousImageStoragePaths.length > 0) {
+    await Promise.all(previousImageStoragePaths.map((storagePath) => del(storagePath)));
+  }
 
   revalidatePath("/panel");
   revalidatePath("/");
@@ -250,4 +277,41 @@ export async function setReviewStatusAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/critica/${reviewSlug}`);
+}
+
+const VIEW_DEDUPE_WINDOW_SECONDS = 60 * 60 * 24;
+
+/**
+ * Mutación pública: la puede llamar cualquier visitante anónimo.
+ * Solo incrementa; no acepta ni devuelve nada sensible. Deduplicada por
+ * cookie opaca (sin PII) de 24h, y no cuenta vistas de la propia autora.
+ */
+export async function incrementReviewView(reviewId: string): Promise<void> {
+  const session = await auth();
+
+  if (session?.user) {
+    return;
+  }
+
+  const published = await isReviewPublished(reviewId);
+
+  if (!published) {
+    return;
+  }
+
+  const cookieStore = await cookies();
+  const cookieName = `viewed_${reviewId}`;
+
+  if (cookieStore.get(cookieName)) {
+    return;
+  }
+
+  await incrementReviewViewCount(reviewId);
+
+  cookieStore.set(cookieName, "1", {
+    maxAge: VIEW_DEDUPE_WINDOW_SECONDS,
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
 }

@@ -12,6 +12,7 @@ import {
   getReviewImagesForDisplay,
   getReviewTagNames,
 } from "@/features/reviews/queries";
+import { ViewTracker } from "@/features/reviews/components/view-tracker";
 
 export const revalidate = 0;
 
@@ -55,6 +56,8 @@ export default async function ReviewDetailPage({
 
   return (
     <div className="min-h-dvh bg-background">
+      <ViewTracker reviewId={review.id} />
+
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="mx-auto flex h-[60px] max-w-[720px] items-center px-6">
           <Link href="/" className="font-display text-lg font-semibold tracking-[0.03em] text-foreground no-underline">

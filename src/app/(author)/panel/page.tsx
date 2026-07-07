@@ -5,9 +5,10 @@ import { Suspense } from "react";
 
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/config";
+import { DashboardStats } from "@/features/reviews/components/dashboard-stats";
 import { ReviewList } from "@/features/reviews/components/review-list";
 import { SavedToast } from "@/features/reviews/components/saved-toast";
-import { getReviewsByAuthor } from "@/features/reviews/queries";
+import { getAuthorReviewStats, getReviewsByAuthor } from "@/features/reviews/queries";
 
 export const metadata: Metadata = {
   title: "Panel",
@@ -20,7 +21,10 @@ export default async function PanelPage() {
     redirect("/login");
   }
 
-  const reviews = await getReviewsByAuthor(session.user.id);
+  const [stats, reviews] = await Promise.all([
+    getAuthorReviewStats(session.user.id),
+    getReviewsByAuthor(session.user.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -33,6 +37,8 @@ export default async function PanelPage() {
           <Link href="/panel/criticas/nueva">Nueva crítica</Link>
         </Button>
       </div>
+
+      <DashboardStats {...stats} />
 
       <ReviewList reviews={reviews} />
     </div>
