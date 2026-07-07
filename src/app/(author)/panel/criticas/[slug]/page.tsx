@@ -57,7 +57,11 @@ export default async function EditReviewPage({
           rating: review.rating ? String(review.rating) : "",
           body: review.body,
           tags: tagNames.join(", "),
-          images: images.map((image) => ({ storagePath: image.storagePath, altText: image.altText })),
+          images: images.map((image) => ({
+            storagePath: image.storagePath,
+            altText: image.altText,
+            isCover: image.isCover,
+          })),
         }}
       />
     </div>

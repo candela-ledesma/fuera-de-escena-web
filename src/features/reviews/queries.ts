@@ -18,8 +18,11 @@ export async function getReviewsByAuthor(authorId: string) {
       venue: reviews.venue,
       eventDate: reviews.eventDate,
       updatedAt: reviews.updatedAt,
+      coverImageUrl: reviewImages.storagePath,
+      coverImageAlt: reviewImages.altText,
     })
     .from(reviews)
+    .leftJoin(reviewImages, and(eq(reviewImages.reviewId, reviews.id), eq(reviewImages.isCover, true)))
     .where(eq(reviews.authorId, authorId))
     .orderBy(desc(reviews.updatedAt));
 }
@@ -45,9 +48,12 @@ export async function getPublishedReviews() {
       rating: reviews.rating,
       publishedAt: reviews.publishedAt,
       categoryName: categories.name,
+      coverImageUrl: reviewImages.storagePath,
+      coverImageAlt: reviewImages.altText,
     })
     .from(reviews)
     .leftJoin(categories, eq(reviews.categoryId, categories.id))
+    .leftJoin(reviewImages, and(eq(reviewImages.reviewId, reviews.id), eq(reviewImages.isCover, true)))
     .where(eq(reviews.status, "published"))
     .orderBy(desc(reviews.publishedAt));
 }
@@ -80,21 +86,40 @@ export async function getReviewImages(reviewId: string) {
       storagePath: reviewImages.storagePath,
       altText: reviewImages.altText,
       position: reviewImages.position,
+      isCover: reviewImages.isCover,
     })
     .from(reviewImages)
     .where(eq(reviewImages.reviewId, reviewId))
     .orderBy(asc(reviewImages.position));
 }
 
+export async function getReviewImagesForDisplay(reviewId: string) {
+  const images = await getReviewImages(reviewId);
+
+  return [...images].sort((a, b) => Number(b.isCover) - Number(a.isCover));
+}
+
 export async function replaceReviewImages(
   reviewId: string,
-  images: { storagePath: string; altText: string; position: number }[],
+  images: { storagePath: string; altText: string; position: number; isCover: boolean }[],
 ) {
   await db.delete(reviewImages).where(eq(reviewImages.reviewId, reviewId));
 
   if (images.length === 0) return;
 
   await db.insert(reviewImages).values(images.map((image) => ({ reviewId, ...image })));
+}
+
+export async function setCoverImageByPosition(reviewId: string, coverPosition: number) {
+  await db
+    .update(reviewImages)
+    .set({ isCover: false })
+    .where(eq(reviewImages.reviewId, reviewId));
+
+  await db
+    .update(reviewImages)
+    .set({ isCover: true })
+    .where(and(eq(reviewImages.reviewId, reviewId), eq(reviewImages.position, coverPosition)));
 }
 
 export async function getReviewTagNames(reviewId: string) {

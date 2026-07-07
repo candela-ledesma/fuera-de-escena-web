@@ -21,6 +21,7 @@ const REVIEW = {
   eventDate: "2026-06-15",
   rating: "5",
   imageAlt: "Escena de la obra con los actores en la fiesta de cumpleaños",
+  imageAlt2: "Primer plano del elenco durante la escena final",
   body: `“Los hijos de la finada Mircheva, segunda parte” nos sumerge otra vez en un ecosistema escénico donde el humor, el absurdo y la tragedia conviven y coexisten a lo largo de toda la presentación. No obstante, esta esperada precuela introduce una alteración en su premisa fundacional: si la obra original nos anclaba en la oscura solemnidad de un velorio, en esta segunda parte o precuela, todo ocurre durante un cumpleaños. El núcleo de la propuesta teatral y la gran apuesta de su dirección reside, justamente, en hacer que la tragedia ocurra en medio de la celebración.
 
 Es claro que el montaje busca volver a impactar al espectador, aunque desde otro lugar completamente diferente. Si bien es innegable que esta operación escénica resulta interesante y disruptiva desde lo conceptual, considero que la primera parte tenía un impacto más potente en la memoria; mientras que aquel “triste” (entre muchas comillas) velorio generaba una incomodidad más cruda, más difícil de esquivar, acá, la tragedia aparece hábilmente envuelta en fiesta.
@@ -86,8 +87,14 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
       await page
         .getByTestId("review-image-input")
-        .setInputFiles(path.join(__dirname, "fixtures", "test-image.png"));
+        .setInputFiles([
+          path.join(__dirname, "fixtures", "test-image.png"),
+          path.join(__dirname, "fixtures", "test-image-2.png"),
+        ]);
       await page.getByPlaceholder("Descripción de la imagen 1 (accesibilidad)").fill(REVIEW.imageAlt);
+      await page.getByPlaceholder("Descripción de la imagen 2 (accesibilidad)").fill(REVIEW.imageAlt2);
+
+      await page.getByRole("radiogroup", { name: "Imagen de portada" }).getByRole("radio").nth(1).click();
 
       await page.getByRole("button", { name: "Crear crítica" }).click();
       await expect(page).toHaveURL(/\/panel$/);
@@ -102,20 +109,29 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
     });
 
+    await test.step("la miniatura del panel muestra la portada elegida (segunda imagen)", async () => {
+      await expect(reviewCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
+      await expect(reviewCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
+    });
+
     await test.step("publicar la crítica", async () => {
       await reviewCard.getByRole("button", { name: "Publicar" }).click();
       await expect(reviewCard.getByText("Publicada")).toBeVisible();
       await expect(reviewCard.getByRole("link", { name: "Ver publicación" })).toBeVisible();
     });
 
-    await test.step("la crítica publicada aparece en la vista pública", async () => {
+    await test.step("la crítica publicada aparece en la vista pública con la portada elegida", async () => {
       await page.goto("/");
-      await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).toBeVisible();
+      const homeCard = page.getByRole("link", { name: new RegExp(REVIEW.title) });
+      await expect(homeCard).toBeVisible();
+      await expect(homeCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
+      await expect(homeCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
 
-      await page.getByRole("link", { name: new RegExp(REVIEW.title) }).click();
+      await homeCard.click();
       await expect(page).toHaveURL(/\/critica\/.+/);
       await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
       await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
+      await expect(page.getByAltText(REVIEW.imageAlt2)).toBeVisible();
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
     });
 
@@ -141,6 +157,10 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByLabel("Título de la obra")).toHaveValue(REVIEW.title);
       await expect(page.getByLabel("Texto de la crítica")).toHaveValue(REVIEW.body);
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
+
+      const coverRadios = page.getByRole("radiogroup", { name: "Imagen de portada" }).getByRole("radio");
+      await expect(coverRadios.nth(0)).not.toBeChecked();
+      await expect(coverRadios.nth(1)).toBeChecked();
 
       await page.getByLabel("Teatro / lugar").fill(EDITED_VENUE);
       await page.getByRole("button", { name: "Guardar cambios" }).click();

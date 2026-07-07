@@ -7,7 +7,11 @@ import { auth } from "@/lib/auth/config";
 import { CommentForm } from "@/features/comments/components/comment-form";
 import { CommentList } from "@/features/comments/components/comment-list";
 import { getApprovedCommentsByReviewId } from "@/features/comments/queries";
-import { getPublishedReviewBySlug, getReviewImages, getReviewTagNames } from "@/features/reviews/queries";
+import {
+  getPublishedReviewBySlug,
+  getReviewImagesForDisplay,
+  getReviewTagNames,
+} from "@/features/reviews/queries";
 
 export const revalidate = 0;
 
@@ -43,7 +47,7 @@ export default async function ReviewDetailPage({
 
   const [tagNames, images, comments, session] = await Promise.all([
     getReviewTagNames(review.id),
-    getReviewImages(review.id),
+    getReviewImagesForDisplay(review.id),
     getApprovedCommentsByReviewId(review.id),
     auth(),
   ]);
