@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import {
   Bold,
@@ -137,13 +137,14 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-export function TiptapEditor({
-  content,
-  onChange,
-}: {
+export type TiptapEditorHandle = {
+  focus: () => void;
+};
+
+export const TiptapEditor = forwardRef<TiptapEditorHandle, {
   content: unknown;
   onChange: (json: unknown, plainText: string) => void;
-}) {
+}>(function TiptapEditor({ content, onChange }, ref) {
   const editor = useEditor({
     extensions: editorExtensions,
     content: content as object,
@@ -165,6 +166,14 @@ export function TiptapEditor({
       editor?.destroy();
     };
   }, [editor]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => editor?.commands.focus("start"),
+    }),
+    [editor],
+  );
 
   if (!editor) {
     return (
@@ -189,4 +198,4 @@ export function TiptapEditor({
       </div>
     </div>
   );
-}
+});
