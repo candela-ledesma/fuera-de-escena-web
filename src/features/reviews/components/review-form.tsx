@@ -182,14 +182,9 @@ export function ReviewForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit(onValid)}
-      className="grid max-w-2xl gap-6"
-      noValidate
-    >
+    <form ref={formRef} onSubmit={handleSubmit(onValid)} noValidate className="pb-24">
       {status ? (
-        <div className="flex items-center gap-3 text-sm">
+        <div className="mb-4 flex items-center gap-3 text-sm">
           <span
             className={cn(
               "rounded-full px-2.5 py-1 font-medium",
@@ -206,107 +201,145 @@ export function ReviewForm({
         </div>
       ) : null}
 
-      <div className="grid gap-2">
-        <Label htmlFor="title">Título de la obra</Label>
-        <Input id="title" aria-invalid={Boolean(errors.title)} {...register("title")} />
-        {errors.title ? (
-          <p role="alert" className="text-sm text-destructive">
-            {errors.title.message}
-          </p>
-        ) : null}
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_280px]">
+        {/* Columna principal: el editor */}
+        <div className="min-w-0">
+          <div className="grid gap-2">
+            <Label htmlFor="title" className="sr-only">
+              Título de la obra
+            </Label>
+            <Input
+              id="title"
+              placeholder="Título de la obra"
+              aria-invalid={Boolean(errors.title)}
+              className="h-auto border-none bg-transparent px-0 font-display text-3xl shadow-none focus-visible:ring-0 sm:text-4xl"
+              {...register("title")}
+            />
+            {errors.title ? (
+              <p role="alert" className="text-sm text-destructive">
+                {errors.title.message}
+              </p>
+            ) : null}
+          </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="venue">Teatro / lugar</Label>
-          <Input id="venue" {...register("venue")} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="eventDate">Fecha de la función</Label>
-          <Input id="eventDate" type="date" {...register("eventDate")} />
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="categoryId">Categoría</Label>
-          <Select
-            value={categoryId}
-            onValueChange={(value) => setValue("categoryId", value, { shouldValidate: true })}
+          {/* Barra de formato (placeholder, se cablea en la Parte 2) */}
+          <div
+            className="sticky top-0 z-10 mt-4 flex h-11 items-center gap-1 rounded-t-lg border border-b-0 border-border bg-card px-3 text-sm text-muted-foreground"
+            aria-hidden="true"
           >
-            <SelectTrigger id="categoryId" className="w-full" aria-invalid={Boolean(errors.categoryId)}>
-              <SelectValue placeholder="Elegí una categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <input type="hidden" name="categoryId" value={categoryId ?? ""} />
-          {errors.categoryId ? (
+            Formato de texto (próximamente)
+          </div>
+
+          <div className="rounded-b-lg border border-border bg-card px-6 py-8 sm:px-10">
+            <div className="mx-auto max-w-[65ch]">
+              <Label htmlFor="body" className="sr-only">
+                Texto de la crítica
+              </Label>
+              <Textarea
+                id="body"
+                className="min-h-[40vh] resize-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0 lg:min-h-[60vh]"
+                placeholder="Escribí tu crítica…"
+                aria-invalid={Boolean(errors.body)}
+                {...register("body")}
+              />
+            </div>
+          </div>
+
+          <p className="mt-2 text-xs text-muted-foreground">{wordCount} palabras</p>
+          {errors.body ? (
             <p role="alert" className="text-sm text-destructive">
-              {errors.categoryId.message}
+              {errors.body.message}
             </p>
           ) : null}
         </div>
 
-        <div className="grid gap-2">
-          <StarRating
-            value={rating}
-            onChange={(value) => setValue("rating", value, { shouldValidate: true })}
-          />
-          <input type="hidden" name="rating" value={rating ?? ""} />
-          {errors.rating ? (
-            <p role="alert" className="text-sm text-destructive">
-              {errors.rating.message}
-            </p>
-          ) : null}
+        {/* Barra lateral: metadatos */}
+        <div className="grid content-start gap-5">
+          <div className="grid gap-1.5">
+            <Label htmlFor="venue" className="text-xs">
+              Teatro / lugar
+            </Label>
+            <Input id="venue" className="h-9 text-sm" {...register("venue")} />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="eventDate" className="text-xs">
+              Fecha de la función
+            </Label>
+            <Input id="eventDate" type="date" className="h-9 text-sm" {...register("eventDate")} />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="categoryId" className="text-xs">
+              Categoría
+            </Label>
+            <Select
+              value={categoryId}
+              onValueChange={(value) => setValue("categoryId", value, { shouldValidate: true })}
+            >
+              <SelectTrigger
+                id="categoryId"
+                className="h-9 w-full text-sm"
+                aria-invalid={Boolean(errors.categoryId)}
+              >
+                <SelectValue placeholder="Elegí una categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="categoryId" value={categoryId ?? ""} />
+            {errors.categoryId ? (
+              <p role="alert" className="text-sm text-destructive">
+                {errors.categoryId.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-1.5">
+            <StarRating
+              value={rating}
+              onChange={(value) => setValue("rating", value, { shouldValidate: true })}
+            />
+            <input type="hidden" name="rating" value={rating ?? ""} />
+            {errors.rating ? (
+              <p role="alert" className="text-sm text-destructive">
+                {errors.rating.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label htmlFor="tags-input" className="text-xs">
+              Palabras clave
+            </Label>
+            <TagsInput
+              id="tags-input"
+              value={tags ?? ""}
+              onChange={(value) => setValue("tags", value, { shouldValidate: true })}
+            />
+            <input type="hidden" name="tags" value={tags ?? ""} />
+          </div>
+
+          <ImageUploader existingImages={defaults.images} />
         </div>
       </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="body">Texto de la crítica</Label>
-        <div className="max-w-[72ch]">
-          <Textarea
-            id="body"
-            className="min-h-48"
-            aria-invalid={Boolean(errors.body)}
-            {...register("body")}
-          />
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <span className="text-sm text-muted-foreground">
+            {autosaveState === "saving" ? "Guardando…" : null}
+            {autosaveState === "saved" ? "Guardado hace un momento" : null}
+            {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
+          </span>
+          <Button type="submit" disabled={isPending} className="justify-self-end">
+            {isPending ? "Guardando…" : submitButtonLabel}
+          </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{wordCount} palabras</p>
-        {errors.body ? (
-          <p role="alert" className="text-sm text-destructive">
-            {errors.body.message}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="tags-input">Palabras clave</Label>
-        <TagsInput
-          id="tags-input"
-          value={tags ?? ""}
-          onChange={(value) => setValue("tags", value, { shouldValidate: true })}
-        />
-        <input type="hidden" name="tags" value={tags ?? ""} />
-      </div>
-
-      <ImageUploader existingImages={defaults.images} />
-
-      <div className="sticky bottom-0 -mx-6 flex items-center justify-between gap-4 border-t border-border bg-background px-6 py-3">
-        <span className="text-sm text-muted-foreground">
-          {autosaveState === "saving" ? "Guardando…" : null}
-          {autosaveState === "saved" ? "Guardado hace un momento" : null}
-          {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
-        </span>
-        <Button type="submit" disabled={isPending} className="justify-self-end">
-          {isPending ? "Guardando…" : submitButtonLabel}
-        </Button>
       </div>
     </form>
   );
