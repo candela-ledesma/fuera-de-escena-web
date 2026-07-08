@@ -7,7 +7,7 @@ import { signOut } from "@/features/auth/actions";
 export default function PanelLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
-      <header className="flex items-center justify-between border-b border-border/70 px-6 py-4">
+      <header className="flex h-16 items-center justify-between border-b border-border/70 px-6">
         <div className="flex items-center gap-4">
           <Link
             href="/"

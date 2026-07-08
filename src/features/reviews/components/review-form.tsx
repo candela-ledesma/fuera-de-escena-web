@@ -210,10 +210,12 @@ export function ReviewForm({
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_280px]">
-        {/* Columna principal: el editor */}
-        <div className="min-w-0">
-          <div className="grid gap-2">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_280px] lg:items-start">
+        {/* Columna principal: el editor. Título, toolbar y contenido comparten
+            el mismo ancho y alineación (max-w-[65ch] mx-auto) para que sus
+            bordes izquierdo/derecho coincidan. */}
+        <div className="mx-auto min-w-0 max-w-[65ch]">
+          <div className="px-6 sm:px-10">
             <Label htmlFor="title" className="sr-only">
               Título de la obra
             </Label>
@@ -221,7 +223,7 @@ export function ReviewForm({
               id="title"
               placeholder="Título de la obra"
               aria-invalid={Boolean(errors.title)}
-              className="h-auto border-none bg-transparent px-0 font-display text-3xl shadow-none focus-visible:ring-0 sm:text-4xl"
+              className="h-auto border-none bg-transparent px-0 font-display !text-[2rem] font-medium text-[#6E4B3A] shadow-none placeholder:text-[#6E4B3A]/35 focus-visible:ring-0 focus-visible:border-b focus-visible:border-primary sm:!text-[2.25rem]"
               {...register("title")}
             />
             {errors.title ? (
@@ -231,14 +233,14 @@ export function ReviewForm({
             ) : null}
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             <TiptapEditor content={defaults.contentJson ?? EMPTY_DOC} onChange={handleEditorChange} />
           </div>
           <input type="hidden" {...register("contentJson")} />
 
-          <p className="mt-2 text-xs text-muted-foreground">{wordCount} palabras</p>
+          <p className="mt-2 px-6 text-xs text-muted-foreground sm:px-10">{wordCount} palabras</p>
           {errors.contentJson ? (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="px-6 text-sm text-destructive sm:px-10">
               {errors.contentJson.message}
             </p>
           ) : null}
