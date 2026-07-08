@@ -13,11 +13,17 @@
     "db:seed:categories": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/categories.ts",
     "db:create-author": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/create-author.ts",
     "db:backfill-cover-images": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/backfill-cover-images.ts",
+    "db:backfill-content-json": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/backfill-content-json.ts",
     "db:deduplicate-reactions": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/deduplicate-reactions.ts",
     "test:e2e": "node --env-file=.env.local ./node_modules/.bin/playwright test"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@tiptap/extension-link": "^3.27.3",
+    "@tiptap/html": "^3.27.3",
+    "@tiptap/pm": "^3.27.3",
+    "@tiptap/react": "^3.27.3",
+    "@tiptap/starter-kit": "^3.27.3",
     "@vercel/blob": "^2.5.0",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",

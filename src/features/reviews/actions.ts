@@ -10,6 +10,7 @@ import { requireAuthorSession } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, draftFormSchema, reviewFormSchema, slugify } from "./schema";
+import { validateAndNormalizeContent } from "./content-validation";
 import {
   deleteReview,
   findTagsByName,
@@ -64,7 +65,7 @@ function parseForm(formData: FormData) {
     eventDate: formData.get("eventDate") || undefined,
     categoryId: formData.get("categoryId"),
     rating: formData.get("rating"),
-    body: formData.get("body"),
+    contentJson: formData.get("contentJson"),
     tags: formData.get("tags") || undefined,
     coverIndex: formData.get("coverIndex") || undefined,
   });
@@ -129,7 +130,13 @@ export async function createReview(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, body, tags, coverIndex } = parsed.data;
+  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+
+  const validatedContent = validateAndNormalizeContent(contentJson);
+
+  if (!validatedContent) {
+    return { error: "El contenido de la crítica no es válido." };
+  }
 
   const slug = await resolveUniqueSlug(title);
   const tagIds = await resolveTagIds(tags);
@@ -149,7 +156,8 @@ export async function createReview(
         eventDate: eventDate ?? null,
         categoryId,
         rating,
-        body,
+        body: validatedContent.plainText,
+        contentJson: validatedContent.doc,
         slug,
       },
       tx,
@@ -187,7 +195,13 @@ export async function updateReviewAction(
     return { error: "La crítica no existe." };
   }
 
-  const { title, venue, eventDate, categoryId, rating, body, tags, coverIndex } = parsed.data;
+  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+
+  const validatedContent = validateAndNormalizeContent(contentJson);
+
+  if (!validatedContent) {
+    return { error: "El contenido de la crítica no es válido." };
+  }
 
   const slug = existing.slug;
   const tagIds = await resolveTagIds(tags);
@@ -224,7 +238,8 @@ export async function updateReviewAction(
         eventDate: eventDate ?? null,
         categoryId,
         rating,
-        body,
+        body: validatedContent.plainText,
+        contentJson: validatedContent.doc,
         slug,
       },
       tx,
@@ -298,7 +313,7 @@ export async function saveDraftAction(
     eventDate: formData.get("eventDate") || undefined,
     categoryId: formData.get("categoryId") || undefined,
     rating: formData.get("rating") || undefined,
-    body: formData.get("body") || undefined,
+    contentJson: formData.get("contentJson") || undefined,
     tags: formData.get("tags") || undefined,
   });
 
@@ -307,7 +322,21 @@ export async function saveDraftAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, body, tags } = parsed.data;
+  const { title, venue, eventDate, categoryId, rating, contentJson, tags } = parsed.data;
+
+  let body = "";
+  let normalizedContentJson: unknown = null;
+
+  if (contentJson) {
+    const validatedContent = validateAndNormalizeContent(contentJson);
+
+    if (!validatedContent) {
+      return { error: "No se pudo guardar el borrador." };
+    }
+
+    body = validatedContent.plainText;
+    normalizedContentJson = validatedContent.doc;
+  }
 
   const fields = {
     title,
@@ -316,6 +345,7 @@ export async function saveDraftAction(
     categoryId: categoryId ?? null,
     rating: rating ?? null,
     body,
+    contentJson: normalizedContentJson,
   };
 
   if (reviewId) {
@@ -348,6 +378,7 @@ export async function saveDraftAction(
     categoryId: fields.categoryId,
     rating: fields.rating,
     body,
+    contentJson: normalizedContentJson,
     slug,
   });
 

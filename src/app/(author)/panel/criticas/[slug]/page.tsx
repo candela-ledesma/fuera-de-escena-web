@@ -58,7 +58,7 @@ export default async function EditReviewPage({
           eventDate: review.eventDate ?? "",
           categoryId: review.categoryId ?? "",
           rating: review.rating ? String(review.rating) : "",
-          body: review.body,
+          contentJson: review.contentJson ?? { type: "doc", content: [{ type: "paragraph", content: [] }] },
           tags: tagNames.join(", "),
           images: images.map((image) => ({
             storagePath: image.storagePath,
