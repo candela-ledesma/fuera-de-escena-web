@@ -14,24 +14,24 @@ export function DashboardStats({ total, published, drafts, totalViews, mostViewe
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Card className="gap-1 p-4">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">Críticas</span>
+        <span className="min-h-9 text-xs uppercase leading-tight tracking-wide text-muted-foreground">Críticas</span>
         <span className="font-display text-3xl text-foreground">{total}</span>
       </Card>
 
       <Card className="gap-1 p-4">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">Publicadas / borradores</span>
+        <span className="min-h-9 text-xs uppercase leading-tight tracking-wide text-muted-foreground">Publicadas / borradores</span>
         <span className="font-display text-3xl text-foreground">
           {published} <span className="text-lg text-muted-foreground">/ {drafts}</span>
         </span>
       </Card>
 
       <Card className="gap-1 p-4">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">Vistas totales</span>
+        <span className="min-h-9 text-xs uppercase leading-tight tracking-wide text-muted-foreground">Vistas totales</span>
         <span className="font-display text-3xl text-foreground">{totalViews}</span>
       </Card>
 
       <Card className="gap-1 p-4">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">Más vista</span>
+        <span className="min-h-9 text-xs uppercase leading-tight tracking-wide text-muted-foreground">Más vista</span>
         {mostViewed ? (
           <Link
             href={`/panel/criticas/${mostViewed.slug}`}

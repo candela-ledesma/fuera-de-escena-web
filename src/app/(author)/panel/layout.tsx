@@ -7,9 +7,9 @@ import { PanelBackLink } from "./panel-back-link";
 export default function PanelLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
-      <header className="grid h-16 grid-cols-[1fr_auto_1fr] items-center border-b border-border/70 px-6">
+      <header className="grid min-h-16 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border/70 px-3 py-2 sm:px-6">
         <PanelBackLink />
-        <p className="justify-self-center text-sm font-semibold uppercase tracking-[0.24em] text-muted">
+        <p className="justify-self-center whitespace-nowrap text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted sm:text-sm sm:tracking-[0.24em]">
           Panel de la autora
         </p>
         <form action={signOut} className="justify-self-end">

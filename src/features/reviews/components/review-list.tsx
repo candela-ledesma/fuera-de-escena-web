@@ -83,9 +83,9 @@ export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
-          <SelectTrigger className="w-[160px]" aria-label="Filtrar por estado">
+          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filtrar por estado">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -96,7 +96,7 @@ export function ReviewList({ reviews }: { reviews: ReviewListItem[] }) {
         </Select>
 
         <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
-          <SelectTrigger className="w-[160px]" aria-label="Ordenar por">
+          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Ordenar por">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -141,7 +141,7 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
 
   return (
     <li className="flex flex-col gap-3 rounded-xl border border-border/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="relative size-14 shrink-0 overflow-hidden rounded-md border border-border bg-secondary">
           {review.coverImageUrl ? (
             <Image
@@ -154,10 +154,10 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
           ) : null}
         </div>
 
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium">{review.title}</h3>
-            <Badge variant={review.status === "published" ? "default" : "secondary"}>
+        <div className="min-w-0">
+          <div className="flex items-start gap-2">
+            <h3 className="min-w-0 break-words font-medium line-clamp-2">{review.title}</h3>
+            <Badge className="shrink-0" variant={review.status === "published" ? "default" : "secondary"}>
               {review.status === "published" ? "Publicada" : "Borrador"}
             </Badge>
           </div>
