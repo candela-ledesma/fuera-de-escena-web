@@ -18,11 +18,11 @@ export function PanelBackLink() {
       asChild
       variant="ghost"
       size="sm"
-      className="justify-self-start text-muted hover:text-foreground"
+      className="justify-self-start px-2 text-muted hover:text-foreground sm:px-3"
     >
-      <Link href={href}>
+      <Link href={href} aria-label={label}>
         <ArrowLeft />
-        {label}
+        <span className="hidden sm:inline">{label}</span>
       </Link>
     </Button>
   );

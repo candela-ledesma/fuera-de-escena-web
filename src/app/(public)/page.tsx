@@ -47,9 +47,9 @@ export default async function HomePage() {
       </div>
 
       <header className="sticky top-0 z-50 border-b border-border bg-card">
-        <div className="mx-auto flex h-[60px] max-w-5xl items-center justify-between gap-4 px-6">
-          <div className="flex items-center gap-3">
-            <a href="#" className="flex items-center gap-2 no-underline">
+        <div className="mx-auto flex h-[60px] max-w-5xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <a href="#" className="flex shrink-0 items-center gap-2 no-underline">
               <Image
                 src="/brand/logo.png"
                 alt="Fuera de Escena"
@@ -58,7 +58,7 @@ export default async function HomePage() {
                 priority
                 className="size-8 shrink-0 rounded-full border border-border object-cover"
               />
-              <span className="font-display text-lg font-semibold tracking-[0.03em] text-foreground">
+              <span className="hidden font-display text-lg font-semibold tracking-[0.03em] text-foreground sm:inline">
                 Fuera de <span>Escena</span>
               </span>
             </a>
@@ -66,14 +66,14 @@ export default async function HomePage() {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted hover:text-[#9A7830]"
+              className="truncate text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted hover:text-[#9A7830]"
             >
               @fueradeescenabb
             </a>
           </div>
 
           {isAuthor ? (
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-2">
               <Button asChild size="sm">
                 <Link href="/panel">Panel de autora</Link>
               </Button>

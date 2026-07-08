@@ -72,10 +72,10 @@ export default async function ReviewDetailPage({
 
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="mx-auto flex h-[60px] max-w-[720px] items-center px-6">
-          <Button asChild variant="ghost" size="sm" className="-ml-3 text-muted hover:text-foreground">
-            <Link href="/">
+          <Button asChild variant="ghost" size="sm" className="-ml-3 px-2 text-muted hover:text-foreground sm:px-3">
+            <Link href="/" aria-label="Volver a inicio">
               <ArrowLeft />
-              Volver a inicio
+              <span className="hidden sm:inline">Volver a inicio</span>
             </Link>
           </Button>
         </div>
