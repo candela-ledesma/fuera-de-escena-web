@@ -52,6 +52,13 @@ const DRAFT_REVIEW = {
   body: "Texto parcial escrito mientras se prueba el autosave del panel.",
 };
 
+function plainTextDoc(text: string) {
+  return {
+    type: "doc",
+    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+  };
+}
+
 async function deleteLeftoverTestReviews() {
   await db.delete(reviews).where(eq(reviews.title, REVIEW.title));
   await db.delete(reviews).where(eq(reviews.title, DRAFT_REVIEW.title));
@@ -88,7 +95,8 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
 
       await page.getByRole("radio", { name: `${REVIEW.rating} estrellas` }).click();
 
-      await page.getByLabel("Texto de la crítica").fill(REVIEW.body);
+      await page.getByRole("textbox", { name: "Texto de la crítica" }).click();
+      await page.keyboard.type(REVIEW.body);
       await page.getByLabel("Palabras clave").fill(REVIEW.tags);
 
       await page
@@ -198,7 +206,9 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/panel\/criticas\/.+/);
 
       await expect(page.getByLabel("Título de la obra")).toHaveValue(REVIEW.title);
-      await expect(page.getByLabel("Texto de la crítica")).toHaveValue(REVIEW.body);
+      await expect(page.getByRole("textbox", { name: "Texto de la crítica" })).toContainText(
+        "nos sumerge otra vez en un ecosistema escénico",
+      );
       await expect(page.getByAltText(REVIEW.imageAlt)).toBeVisible();
       await expect(page.getByText("Publicada · editando")).toBeVisible();
       await expect(page.getByRole("link", { name: "Ver en el sitio" })).toBeVisible();
@@ -263,7 +273,8 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
 
     await page.getByLabel("Título de la obra").fill(DRAFT_REVIEW.title);
-    await page.getByLabel("Texto de la crítica").fill(DRAFT_REVIEW.body);
+    await page.getByRole("textbox", { name: "Texto de la crítica" }).click();
+    await page.keyboard.type(DRAFT_REVIEW.body);
 
     await expect(page.getByText("Guardado hace un momento")).toBeVisible({ timeout: 10_000 });
     await expect(page).toHaveURL(/\/panel\/criticas\/(?!nueva$).+/);
@@ -271,7 +282,9 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     await page.reload();
 
     await expect(page.getByLabel("Título de la obra")).toHaveValue(DRAFT_REVIEW.title);
-    await expect(page.getByLabel("Texto de la crítica")).toHaveValue(DRAFT_REVIEW.body);
+    await expect(page.getByRole("textbox", { name: "Texto de la crítica" })).toContainText(
+      DRAFT_REVIEW.body,
+    );
     await expect(page.getByText("Borrador")).toBeVisible();
 
     await page.goto("/panel");
@@ -298,6 +311,7 @@ test.describe("Vista pública (sin sesión)", () => {
         categoryId: category.id,
         title: "Crítica de prueba para moderación anónima",
         body: "Cuerpo de prueba.",
+        contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-moderacion-anonima",
         rating: 4,
         status: "published",
@@ -334,6 +348,7 @@ test.describe("Vista pública (sin sesión)", () => {
         categoryId: category.id,
         title: "Crítica de prueba para reacciones anónimas",
         body: "Cuerpo de prueba.",
+        contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-reacciones-anonimas",
         rating: 4,
         status: "published",
@@ -389,6 +404,7 @@ test.describe("Vista pública (sin sesión)", () => {
         categoryId: category.id,
         title: "Crítica de prueba para conteo de vistas",
         body: "Cuerpo de prueba.",
+        contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-conteo-vistas",
         rating: 4,
         status: "published",

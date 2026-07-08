@@ -17,6 +17,7 @@ import {
   getReviewTagNames,
 } from "@/features/reviews/queries";
 import { ViewTracker } from "@/features/reviews/components/view-tracker";
+import { ReviewContent } from "@/components/review-content";
 
 export const revalidate = 0;
 
@@ -109,8 +110,8 @@ export default async function ReviewDetailPage({
           </div>
         ) : null}
 
-        <div className="mt-8 whitespace-pre-wrap font-display text-lg leading-8 text-foreground">
-          {review.body}
+        <div className="mt-8">
+          <ReviewContent contentJson={review.contentJson} />
         </div>
 
         <div className="mt-8 border-t border-border pt-6">

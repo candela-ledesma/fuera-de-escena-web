@@ -120,6 +120,7 @@ export async function getPublishedReviewBySlug(slug: string) {
       eventDate: reviews.eventDate,
       rating: reviews.rating,
       body: reviews.body,
+      contentJson: reviews.contentJson,
       slug: reviews.slug,
       publishedAt: reviews.publishedAt,
       categoryName: categories.name,
@@ -247,6 +248,7 @@ export async function updateReviewDraftFields(
     categoryId: string | null;
     rating: number | null;
     body: string;
+    contentJson: unknown;
   },
 ) {
   const [updated] = await db

@@ -11,6 +11,7 @@ import {
   primaryKey,
   unique,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const reviewStatusEnum = pgEnum("review_status", ["draft", "published"]);
@@ -45,6 +46,7 @@ export const reviews = pgTable("reviews", {
   eventDate: date("event_date"),
   rating: smallint("rating"),
   body: text("body").notNull(),
+  contentJson: jsonb("content_json"),
   slug: text("slug").notNull().unique(),
   status: reviewStatusEnum("status").notNull().default("draft"),
   publishedAt: timestamp("published_at", { withTimezone: true }),

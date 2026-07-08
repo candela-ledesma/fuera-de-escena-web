@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -26,8 +25,11 @@ import { reviewFormSchema } from "../schema";
 import { ImageUploader, type ExistingImage } from "./image-uploader";
 import { StarRating } from "./star-rating";
 import { TagsInput } from "./tags-input";
+import { TiptapEditor } from "./tiptap-editor";
 
 const AUTOSAVE_DEBOUNCE_MS = 4000;
+
+const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", content: [] }] };
 
 type Category = { id: string; name: string };
 
@@ -37,7 +39,7 @@ type ReviewDefaults = {
   eventDate: string;
   categoryId: string;
   rating: string;
-  body: string;
+  contentJson: unknown;
   tags: string;
   images: ExistingImage[];
 };
@@ -48,7 +50,7 @@ const emptyDefaults: ReviewDefaults = {
   eventDate: "",
   categoryId: "",
   rating: "",
-  body: "",
+  contentJson: EMPTY_DOC,
   tags: "",
   images: [],
 };
@@ -59,7 +61,7 @@ type FormValues = {
   eventDate?: string;
   categoryId: string;
   rating: number | undefined;
-  body: string;
+  contentJson: string;
   tags?: string;
 };
 
@@ -86,6 +88,8 @@ export function ReviewForm({
   const formRef = useRef<HTMLFormElement>(null);
   const draftIdRef = useRef<string | null>(reviewId ?? null);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
+  const [plainText, setPlainText] = useState("");
 
   const {
     register,
@@ -101,7 +105,7 @@ export function ReviewForm({
       eventDate: defaults.eventDate,
       categoryId: defaults.categoryId || undefined,
       rating: defaults.rating ? Number(defaults.rating) : undefined,
-      body: defaults.body,
+      contentJson: JSON.stringify(defaults.contentJson ?? EMPTY_DOC),
       tags: defaults.tags,
     },
   });
@@ -114,12 +118,11 @@ export function ReviewForm({
   const eventDate = watch("eventDate");
   const rating = watch("rating");
   const categoryId = watch("categoryId");
-  const body = watch("body");
   const tags = watch("tags");
   const wordCount = useMemo(() => {
-    const trimmed = body?.trim();
+    const trimmed = plainText.trim();
     return trimmed ? trimmed.split(/\s+/).length : 0;
-  }, [body]);
+  }, [plainText]);
 
   useEffect(() => {
     if (state.error) {
@@ -127,8 +130,14 @@ export function ReviewForm({
     }
   }, [state.error]);
 
+  function handleEditorChange(json: unknown, text: string) {
+    setContentJson(json);
+    setPlainText(text);
+    setValue("contentJson", JSON.stringify(json), { shouldValidate: true });
+  }
+
   useEffect(() => {
-    const hasContent = Boolean(title?.trim() || body?.trim());
+    const hasContent = Boolean(title?.trim() || plainText.trim());
     if (!hasContent) return;
 
     const timer = setTimeout(() => {
@@ -139,7 +148,7 @@ export function ReviewForm({
       draftData.set("eventDate", eventDate ?? "");
       draftData.set("categoryId", categoryId ?? "");
       draftData.set("rating", rating ? String(rating) : "");
-      draftData.set("body", body ?? "");
+      draftData.set("contentJson", JSON.stringify(contentJson));
       draftData.set("tags", tags ?? "");
 
       saveDraftAction(draftIdRef.current, draftData)
@@ -162,7 +171,7 @@ export function ReviewForm({
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, venue, eventDate, categoryId, rating, body, tags]);
+  }, [title, venue, eventDate, categoryId, rating, contentJson, plainText, tags]);
 
   function onValid() {
     if (!formRef.current) return;
@@ -222,33 +231,15 @@ export function ReviewForm({
             ) : null}
           </div>
 
-          {/* Barra de formato (placeholder, se cablea en la Parte 2) */}
-          <div
-            className="sticky top-0 z-10 mt-4 flex h-11 items-center gap-1 rounded-t-lg border border-b-0 border-border bg-card px-3 text-sm text-muted-foreground"
-            aria-hidden="true"
-          >
-            Formato de texto (próximamente)
+          <div className="mt-4">
+            <TiptapEditor content={defaults.contentJson ?? EMPTY_DOC} onChange={handleEditorChange} />
           </div>
-
-          <div className="rounded-b-lg border border-border bg-card px-6 py-8 sm:px-10">
-            <div className="mx-auto max-w-[65ch]">
-              <Label htmlFor="body" className="sr-only">
-                Texto de la crítica
-              </Label>
-              <Textarea
-                id="body"
-                className="min-h-[40vh] resize-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0 lg:min-h-[60vh]"
-                placeholder="Escribí tu crítica…"
-                aria-invalid={Boolean(errors.body)}
-                {...register("body")}
-              />
-            </div>
-          </div>
+          <input type="hidden" {...register("contentJson")} />
 
           <p className="mt-2 text-xs text-muted-foreground">{wordCount} palabras</p>
-          {errors.body ? (
+          {errors.contentJson ? (
             <p role="alert" className="text-sm text-destructive">
-              {errors.body.message}
+              {errors.contentJson.message}
             </p>
           ) : null}
         </div>

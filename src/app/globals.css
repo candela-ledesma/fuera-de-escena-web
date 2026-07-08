@@ -77,3 +77,66 @@ body {
 .font-display {
   font-family: var(--font-display), serif;
 }
+
+.prose-editor {
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+
+.prose-editor p {
+  margin: 0 0 1em;
+}
+
+.prose-editor p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-editor h2,
+.prose-editor h3 {
+  font-family: var(--font-display), serif;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 1.5em 0 0.5em;
+}
+
+.prose-editor h2 {
+  font-size: 1.5rem;
+}
+
+.prose-editor h3 {
+  font-size: 1.25rem;
+}
+
+.prose-editor blockquote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 3px solid var(--primary);
+  font-style: italic;
+  color: var(--muted);
+}
+
+.prose-editor ul,
+.prose-editor ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+
+.prose-editor li {
+  margin: 0.25em 0;
+}
+
+.prose-editor a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-editor em {
+  font-style: italic;
+}
+
+.prose-editor strong {
+  font-weight: 600;
+}
