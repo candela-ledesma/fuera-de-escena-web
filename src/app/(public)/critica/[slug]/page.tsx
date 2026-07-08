@@ -3,8 +3,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 
 import { auth } from "@/lib/auth/config";
+import { Button } from "@/components/ui/button";
 import { CommentForm } from "@/features/comments/components/comment-form";
 import { CommentList } from "@/features/comments/components/comment-list";
 import { getApprovedCommentsByReviewId } from "@/features/comments/queries";
@@ -70,9 +72,12 @@ export default async function ReviewDetailPage({
 
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="mx-auto flex h-[60px] max-w-[720px] items-center px-6">
-          <Link href="/" className="font-display text-lg font-semibold tracking-[0.03em] text-foreground no-underline">
-            Fuera de Escena
-          </Link>
+          <Button asChild variant="ghost" size="sm" className="-ml-3 text-muted hover:text-foreground">
+            <Link href="/">
+              <ArrowLeft />
+              Volver a inicio
+            </Link>
+          </Button>
         </div>
       </header>
 
