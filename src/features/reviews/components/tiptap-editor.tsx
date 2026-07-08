@@ -152,8 +152,7 @@ export function TiptapEditor({
       attributes: {
         role: "textbox",
         "aria-label": "Texto de la crítica",
-        class:
-          "prose-editor mx-auto max-w-[65ch] min-h-[40vh] lg:min-h-[60vh] focus:outline-none",
+        class: "prose-editor pb-16 focus:outline-none",
       },
     },
     onUpdate: ({ editor }) => {
@@ -170,7 +169,7 @@ export function TiptapEditor({
   if (!editor) {
     return (
       <div className="rounded-lg border border-border bg-card px-6 py-8 sm:px-10">
-        <div className="mx-auto min-h-[40vh] max-w-[65ch] animate-pulse lg:min-h-[60vh]" />
+        <div className="min-h-[40vh] animate-pulse lg:min-h-[60vh]" />
       </div>
     );
   }
@@ -178,7 +177,14 @@ export function TiptapEditor({
   return (
     <div>
       <Toolbar editor={editor} />
-      <div className="rounded-b-lg border border-border bg-card px-6 py-8 sm:px-10">
+      <div
+        className="editor-scroll-area max-h-[calc(100vh-25rem)] min-h-[16rem] overflow-y-auto rounded-b-lg border border-border bg-card px-6 py-8 sm:px-10 lg:max-h-[calc(100vh-21.5rem)]"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            editor.commands.focus("end");
+          }
+        }}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>
