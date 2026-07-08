@@ -96,7 +96,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByRole("radio", { name: `${REVIEW.rating} estrellas` }).click();
 
       await page.getByRole("textbox", { name: "Texto de la crítica" }).click();
-      await page.keyboard.type(REVIEW.body);
+      await page.keyboard.insertText(REVIEW.body);
       await page.getByLabel("Palabras clave").fill(REVIEW.tags);
 
       await page

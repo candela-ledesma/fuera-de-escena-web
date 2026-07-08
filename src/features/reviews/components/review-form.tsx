@@ -25,7 +25,8 @@ import { reviewFormSchema } from "../schema";
 import { ImageUploader, type ExistingImage } from "./image-uploader";
 import { StarRating } from "./star-rating";
 import { TagsInput } from "./tags-input";
-import { TiptapEditor } from "./tiptap-editor";
+import { TiptapEditor, type TiptapEditorHandle } from "./tiptap-editor";
+import { AutoResizeTitle } from "./auto-resize-title";
 
 const AUTOSAVE_DEBOUNCE_MS = 4000;
 
@@ -86,6 +87,7 @@ export function ReviewForm({
   const [state, formAction, isActionPending] = useActionState(action, {});
   const [isTransitionPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const editorRef = useRef<TiptapEditorHandle>(null);
   const draftIdRef = useRef<string | null>(reviewId ?? null);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
@@ -219,11 +221,11 @@ export function ReviewForm({
             <Label htmlFor="title" className="sr-only">
               Título de la obra
             </Label>
-            <Input
+            <AutoResizeTitle
               id="title"
               placeholder="Título de la obra"
               aria-invalid={Boolean(errors.title)}
-              className="h-auto border-none bg-transparent px-0 font-display !text-[2rem] font-medium text-[#6E4B3A] shadow-none placeholder:text-[#6E4B3A]/35 focus-visible:ring-0 focus-visible:border-b focus-visible:border-primary sm:!text-[2.25rem]"
+              onEnter={() => editorRef.current?.focus()}
               {...register("title")}
             />
             {errors.title ? (
@@ -234,7 +236,11 @@ export function ReviewForm({
           </div>
 
           <div className="mt-6">
-            <TiptapEditor content={defaults.contentJson ?? EMPTY_DOC} onChange={handleEditorChange} />
+            <TiptapEditor
+              ref={editorRef}
+              content={defaults.contentJson ?? EMPTY_DOC}
+              onChange={handleEditorChange}
+            />
           </div>
           <input type="hidden" {...register("contentJson")} />
 
