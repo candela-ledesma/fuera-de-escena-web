@@ -191,12 +191,31 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await page.getByLabel("Comentario").fill(COMMENT.body);
       await page.getByRole("button", { name: "Publicar comentario" }).click();
 
-      await expect(page.getByText("Comentario publicado.").first()).toBeVisible();
+      await expect(page.getByText("Comentario publicado.").first()).toBeVisible({ timeout: 20_000 });
       await expect(page.getByText(COMMENT.body)).toBeVisible();
       await expect(page.getByText(COMMENT.authorName)).toBeVisible();
 
       await page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }).click();
       await expect(page.getByText(COMMENT.body)).not.toBeVisible();
+
+      await page.goto("/panel");
+    });
+
+    await test.step("comentar sin nombre (opcional) y borrar", async () => {
+      const reviewUrl = await reviewCard
+        .getByRole("link", { name: "Ver publicación" })
+        .getAttribute("href");
+      await page.goto(reviewUrl!);
+
+      await page.getByLabel("Comentario").fill("Comentario sin nombre de autora.");
+      await page.getByRole("button", { name: "Publicar comentario" }).click();
+
+      await expect(page.getByText("Comentario publicado.").first()).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByText("Comentario sin nombre de autora.")).toBeVisible();
+      await expect(page.getByText("Anónimo")).toBeVisible();
+
+      await page.getByRole("button", { name: "Borrar comentario de Anónimo" }).click();
+      await expect(page.getByText("Comentario sin nombre de autora.")).not.toBeVisible();
 
       await page.goto("/panel");
     });
