@@ -10,6 +10,21 @@ import { cn } from "@/lib/utils";
 
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES } from "../schema";
 
+const HEIC_TYPES = ["image/heic", "image/heif"];
+
+function isHeicFile(file: File): boolean {
+  if (HEIC_TYPES.includes(file.type.toLowerCase())) return true;
+  return /\.hei[cf]$/i.test(file.name);
+}
+
+async function convertHeicToJpeg(file: File): Promise<File> {
+  const heic2any = (await import("heic2any")).default;
+  const result = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
+  const blob = Array.isArray(result) ? result[0] : result;
+  const newName = file.name.replace(/\.hei[cf]$/i, ".jpg");
+  return new File([blob], newName, { type: "image/jpeg" });
+}
+
 export type ExistingImage = {
   storagePath: string;
   altText: string | null;
@@ -54,6 +69,7 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
   const [coverIndex, setCoverIndex] = useState(() => initialCoverIndex(existingImages));
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropzoneId = useId();
   const coverGroupName = useId();
@@ -67,7 +83,7 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function addFiles(files: FileList | File[]) {
+  async function addFiles(files: FileList | File[]) {
     setError(null);
     const incoming = Array.from(files);
     const availableSlots = MAX_REVIEW_IMAGES - slots.length;
@@ -81,7 +97,20 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
       return;
     }
 
-    for (const file of incoming) {
+    let converted: File[];
+    try {
+      setIsConverting(true);
+      converted = await Promise.all(
+        incoming.map((file) => (isHeicFile(file) ? convertHeicToJpeg(file) : file)),
+      );
+    } catch {
+      setError("No se pudo procesar una de las imágenes. Probá con otra foto.");
+      return;
+    } finally {
+      setIsConverting(false);
+    }
+
+    for (const file of converted) {
       const validationError = validateFile(file);
       if (validationError) {
         setError(validationError);
@@ -89,7 +118,7 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
       }
     }
 
-    const newSlots: Slot[] = incoming.map((file) => ({
+    const newSlots: Slot[] = converted.map((file) => ({
       key: `${file.name}-${file.lastModified}-${Math.random()}`,
       file,
       previewUrl: URL.createObjectURL(file),
@@ -233,7 +262,7 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
         ref={inputRef}
         id={dropzoneId}
         type="file"
-        accept={ALLOWED_IMAGE_TYPES.join(",")}
+        accept={[...ALLOWED_IMAGE_TYPES, ...HEIC_TYPES].join(",")}
         multiple
         className="sr-only"
         data-testid="review-image-input"
@@ -242,6 +271,10 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
           event.target.value = "";
         }}
       />
+
+      {isConverting ? (
+        <p className="text-sm text-muted-foreground">Procesando imagen…</p>
+      ) : null}
 
       {error ? (
         <p role="alert" className="text-sm text-destructive">
