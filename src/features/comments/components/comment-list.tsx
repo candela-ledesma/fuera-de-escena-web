@@ -1,3 +1,4 @@
+import { deleteCommentAction } from "../actions";
 import { DeleteCommentButton } from "./delete-comment-button";
 
 type CommentItem = {
@@ -31,7 +32,15 @@ export function CommentList({
           <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{comment.body}</p>
 
           {canModerate ? (
-            <DeleteCommentButton commentId={comment.id} authorName={comment.authorName} />
+            <form
+              action={async () => {
+                "use server";
+                await deleteCommentAction(comment.id);
+              }}
+              className="mt-2"
+            >
+              <DeleteCommentButton authorName={comment.authorName} />
+            </form>
           ) : null}
         </li>
       ))}
