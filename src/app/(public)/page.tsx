@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth/config";
+import { formatDateEs } from "@/lib/utils";
 import { getPublishedReviews } from "@/features/reviews/queries";
 
 export const revalidate = 0;
@@ -12,11 +13,7 @@ const INSTAGRAM_URL = "https://www.instagram.com/fueradeescenabb";
 function formatEventDate(value: string | null): string | null {
   if (!value) return null;
 
-  return new Date(`${value}T00:00:00`).toLocaleDateString("es-AR", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateEs(`${value}T00:00:00`);
 }
 
 export default async function HomePage() {

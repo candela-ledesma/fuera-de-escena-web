@@ -1,3 +1,5 @@
+import { formatDateEs } from "@/lib/utils";
+
 import { deleteCommentAction } from "../actions";
 import { DeleteCommentButton } from "./delete-comment-button";
 
@@ -26,7 +28,7 @@ export function CommentList({
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold text-foreground">{comment.authorName}</span>
             <time className="text-xs text-muted-foreground" dateTime={comment.createdAt.toISOString()}>
-              {comment.createdAt.toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+              {formatDateEs(comment.createdAt)}
             </time>
           </div>
           <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{comment.body}</p>
