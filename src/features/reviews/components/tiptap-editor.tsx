@@ -51,7 +51,8 @@ function Toolbar({ editor }: { editor: Editor }) {
     <div
       role="toolbar"
       aria-label="Formato de texto"
-      className="flex h-11 flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-border bg-card px-2"
+      data-testid="editor-toolbar"
+      className="flex flex-wrap items-center gap-1 rounded-t-lg border border-b-0 border-border bg-card px-2 py-1.5"
     >
       <ToolbarButton
         label="Negrita"
