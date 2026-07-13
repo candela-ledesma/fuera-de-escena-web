@@ -28,6 +28,7 @@ export default async function HomePage() {
           muted
           loop
           playsInline
+          aria-hidden="true"
           className="block h-full w-full object-cover opacity-[0.92]"
         >
           <source src="/hero.mp4" type="video/mp4" />
@@ -49,7 +50,7 @@ export default async function HomePage() {
             <a href="#" className="flex shrink-0 items-center gap-2 no-underline">
               <Image
                 src="/brand/logo.png"
-                alt="Fuera de Escena"
+                alt=""
                 width={32}
                 height={32}
                 priority
@@ -63,7 +64,7 @@ export default async function HomePage() {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted hover:text-[#9A7830]"
+              className="truncate text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted hover:text-[#6E561F]"
             >
               @fueradeescenabb
             </a>
@@ -106,7 +107,7 @@ export default async function HomePage() {
 
       <div className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-2">
-          <span className="border-b-2 border-primary py-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#9A7830]">
+          <span className="border-b-2 border-primary py-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#6E561F]">
             Críticas teatrales
           </span>
         </div>
@@ -165,18 +166,18 @@ export default async function HomePage() {
         )}
       </main>
 
-      <footer className="mt-12 flex flex-col items-center gap-2 border-t border-border px-8 py-8 text-center">
+      <footer className="mt-12 flex flex-col items-center gap-3 border-t border-border px-8 py-8 text-center">
         <a
           href={INSTAGRAM_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs tracking-[0.12em] text-muted hover:text-[#9A7830]"
+          className="flex min-h-11 items-center text-xs tracking-[0.12em] text-muted hover:text-[#6E561F]"
         >
           FUERA DE ESCENA BB · @FUERADEESCENABB
         </a>
         <Link
           href="/login"
-          className="text-[0.66rem] uppercase tracking-[0.18em] text-muted opacity-55 hover:opacity-100 hover:text-[#9A7830]"
+          className="flex min-h-11 items-center text-[0.66rem] uppercase tracking-[0.18em] text-muted hover:text-[#6E561F]"
         >
           Acceso
         </Link>
