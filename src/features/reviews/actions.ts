@@ -83,13 +83,28 @@ function validateImageFile(file: File): string | null {
   return null;
 }
 
-async function resolveNewImages(formData: FormData, slug: string, coverIndex: number) {
+/**
+ * Reconstruye la lista final de imágenes en el orden exacto en que el
+ * ImageUploader las mostraba al momento del submit. El uploader manda un
+ * campo "imageOrder" por slot ("new" o "existing:<storagePath>"), en orden,
+ * junto con los <input type="file" name="images"> de las nuevas (en ese
+ * mismo orden relativo entre sí) y un "imageAlts" por slot. Esto permite
+ * distinguir "no se tocaron las imágenes" (sin campo imageOrder) de "se
+ * quedó sin imágenes" (imageOrder presente pero vacío), y sobre todo permite
+ * saber qué imágenes existentes se borraron para poder eliminarlas.
+ */
+async function resolveFinalImages(
+  formData: FormData,
+  slug: string,
+  coverIndex: number,
+): Promise<{ images: { storagePath: string; altText: string; position: number; isCover: boolean }[] } | { error: string }> {
+  const order = formData.getAll("imageOrder").map((entry) => String(entry));
   const files = formData
     .getAll("images")
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
   const altTexts = formData.getAll("imageAlts").map((entry) => String(entry));
 
-  if (files.length > MAX_REVIEW_IMAGES) {
+  if (order.length > MAX_REVIEW_IMAGES) {
     return { error: `Máximo ${MAX_REVIEW_IMAGES} imágenes.` };
   }
 
@@ -98,25 +113,31 @@ async function resolveNewImages(formData: FormData, slug: string, coverIndex: nu
     if (error) return { error };
   }
 
-  const resolvedCoverIndex = coverIndex < files.length ? coverIndex : 0;
+  let fileIndex = 0;
+  const storagePaths = await Promise.all(
+    order.map(async (entry, index) => {
+      if (entry === "new") {
+        const file = files[fileIndex];
+        fileIndex += 1;
+        const blob = await put(`reviews/${slug}-${Date.now()}-${index}`, file, {
+          access: "public",
+          addRandomSuffix: true,
+        });
+        return blob.url;
+      }
 
-  const uploaded = await Promise.all(
-    files.map(async (file, index) => {
-      const blob = await put(`reviews/${slug}-${Date.now()}-${index}`, file, {
-        access: "public",
-        addRandomSuffix: true,
-      });
-
-      return {
-        storagePath: blob.url,
-        altText: altTexts[index] ?? "",
-        position: index + 1,
-        isCover: index === resolvedCoverIndex,
-      };
+      return entry.slice("existing:".length);
     }),
   );
 
-  return { images: uploaded };
+  const images = storagePaths.map((storagePath, index) => ({
+    storagePath,
+    altText: altTexts[index] ?? "",
+    position: index + 1,
+    isCover: index === coverIndex,
+  }));
+
+  return { images };
 }
 
 export async function createReview(
@@ -141,9 +162,9 @@ export async function createReview(
   const slug = await resolveUniqueSlug(title);
   const tagIds = await resolveTagIds(tags);
 
-  const imagesResult = await resolveNewImages(formData, slug, coverIndex);
+  const imagesResult = await resolveFinalImages(formData, slug, coverIndex);
 
-  if (imagesResult.error) {
+  if ("error" in imagesResult) {
     return { error: imagesResult.error };
   }
 
@@ -167,7 +188,7 @@ export async function createReview(
       await replaceReviewTags(review.id, tagIds, tx);
     }
 
-    if (imagesResult.images && imagesResult.images.length > 0) {
+    if (imagesResult.images.length > 0) {
       await replaceReviewImages(review.id, imagesResult.images, tx);
     }
   });
@@ -206,26 +227,29 @@ export async function updateReviewAction(
   const slug = existing.slug;
   const tagIds = await resolveTagIds(tags);
 
-  const newFiles = formData.getAll("images").filter((entry) => entry instanceof File && entry.size > 0);
-  let newImages: { storagePath: string; altText: string; position: number; isCover: boolean }[] | null =
+  const hasImageOrder = formData.has("imageOrder");
+  let imagesToDelete: string[] = [];
+  let finalImages: { storagePath: string; altText: string; position: number; isCover: boolean }[] | null =
     null;
-  let previousImageStoragePaths: string[] = [];
 
-  if (newFiles.length > 0) {
-    const imagesResult = await resolveNewImages(formData, slug, coverIndex);
+  if (hasImageOrder) {
+    const imagesResult = await resolveFinalImages(formData, slug, coverIndex);
 
-    if (imagesResult.error) {
+    if ("error" in imagesResult) {
       return { error: imagesResult.error };
     }
 
     const previousImages = await getReviewImages(existing.id);
-    previousImageStoragePaths = previousImages.map((image) => image.storagePath);
-    newImages = imagesResult.images ?? [];
+    const keptPaths = new Set(imagesResult.images.map((image) => image.storagePath));
+    imagesToDelete = previousImages
+      .map((image) => image.storagePath)
+      .filter((storagePath) => !keptPaths.has(storagePath));
+    finalImages = imagesResult.images;
   }
 
   await db.transaction(async (tx) => {
-    if (newImages) {
-      await replaceReviewImages(existing.id, newImages, tx);
+    if (finalImages) {
+      await replaceReviewImages(existing.id, finalImages, tx);
     } else {
       await setCoverImageByPosition(existing.id, coverIndex + 1, tx);
     }
@@ -248,8 +272,8 @@ export async function updateReviewAction(
     await replaceReviewTags(existing.id, tagIds, tx);
   });
 
-  if (previousImageStoragePaths.length > 0) {
-    await Promise.all(previousImageStoragePaths.map((storagePath) => del(storagePath)));
+  if (imagesToDelete.length > 0) {
+    await Promise.all(imagesToDelete.map((storagePath) => del(storagePath)));
   }
 
   revalidatePath("/panel");

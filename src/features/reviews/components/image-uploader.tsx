@@ -285,7 +285,15 @@ export function ImageUploader({ existingImages = [] }: { existingImages?: Existi
       {newFiles.map((slot) => (
         <FileFormInput key={slot.key} file={slot.file!} />
       ))}
-      {newFiles.map((slot) => (
+      {slots.map((slot) => (
+        <input
+          key={`order-${slot.key}`}
+          type="hidden"
+          name="imageOrder"
+          value={slot.file ? "new" : `existing:${slot.previewUrl}`}
+        />
+      ))}
+      {slots.map((slot) => (
         <input key={`alt-${slot.key}`} type="hidden" name="imageAlts" value={slot.altText} />
       ))}
       <input type="hidden" name="coverIndex" value={coverIndex} />
