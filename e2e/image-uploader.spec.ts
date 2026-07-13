@@ -1,6 +1,10 @@
 import path from "path";
 
+import { eq } from "drizzle-orm";
 import { test, expect } from "@playwright/test";
+
+import { db } from "../src/lib/db/client";
+import { reviewImages, reviews } from "../src/lib/db/schema";
 
 const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
 const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
@@ -96,5 +100,97 @@ test.describe("Validación del uploader de imágenes", () => {
 
     await expect(page.getByPlaceholder(/Descripción de la imagen 1/)).toHaveValue("Segunda imagen");
     await expect(page.getByPlaceholder(/Descripción de la imagen 2/)).not.toBeVisible();
+  });
+});
+
+test.describe("Persistencia de imágenes al editar una crítica", () => {
+  const EDIT_REVIEW_TITLE = "Crítica de prueba para borrado de imagen al editar";
+
+  async function deleteLeftoverTestReview() {
+    await db.delete(reviews).where(eq(reviews.title, EDIT_REVIEW_TITLE));
+  }
+
+  test.beforeAll(async () => {
+    await deleteLeftoverTestReview();
+  });
+
+  test.afterAll(async () => {
+    await deleteLeftoverTestReview();
+  });
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(TEST_EMAIL!);
+    await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+  });
+
+  test("borrar una imagen existente al editar persiste el cambio", async ({ page }) => {
+    await test.step("crear la crítica con dos imágenes", async () => {
+      await page.getByRole("link", { name: "Escribir una crítica" }).click();
+      await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
+
+      await page.getByLabel("Título de la obra").fill(EDIT_REVIEW_TITLE);
+      await page.getByLabel("Categoría").click();
+      await page.getByRole("option").first().click();
+      await page.getByRole("radio", { name: "5 estrellas" }).click();
+
+      await page.getByRole("textbox", { name: "Texto de la crítica" }).click();
+      await page.keyboard.insertText("Cuerpo de prueba para el test de borrado de imágenes.");
+
+      await page
+        .getByTestId("review-image-input")
+        .setInputFiles([
+          path.join(__dirname, "fixtures", "test-image.png"),
+          path.join(__dirname, "fixtures", "test-image-2.png"),
+        ]);
+      await page.getByPlaceholder("Descripción de la imagen 1 (accesibilidad)").fill("Primera imagen");
+      await page.getByPlaceholder("Descripción de la imagen 2 (accesibilidad)").fill("Segunda imagen");
+
+      await page.getByRole("button", { name: "Crear crítica" }).click();
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+      await expect(page.getByText("Crítica creada.").first()).toBeVisible();
+    });
+
+    const reviewCard = page.locator("li", { hasText: EDIT_REVIEW_TITLE });
+
+    await test.step("editar la crítica y borrar la primera imagen", async () => {
+      await reviewCard.getByRole("link", { name: "Editar" }).click();
+      await expect(page).toHaveURL(/\/panel\/criticas\/.+/);
+
+      await expect(page.getByAltText("Primera imagen")).toBeVisible();
+      await expect(page.getByAltText("Segunda imagen")).toBeVisible();
+
+      await page.getByRole("button", { name: "Eliminar imagen 1" }).click();
+
+      await expect(page.getByAltText("Segunda imagen")).toBeVisible();
+      await expect(page.getByAltText("Primera imagen")).not.toBeVisible();
+
+      await page.getByRole("button", { name: "Guardar cambios" }).click();
+      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+      await expect(page.getByText("Cambios guardados.").first()).toBeVisible();
+    });
+
+    await test.step("la imagen borrada no persiste tras recargar el editor", async () => {
+      await reviewCard.getByRole("link", { name: "Editar" }).click();
+      await expect(page).toHaveURL(/\/panel\/criticas\/.+/);
+
+      await expect(page.getByAltText("Segunda imagen")).toBeVisible();
+      await expect(page.getByAltText("Primera imagen")).not.toBeVisible();
+      await expect(page.getByPlaceholder(/Descripción de la imagen 2/)).not.toBeVisible();
+    });
+
+    await test.step("la base de datos solo conserva la imagen que no fue borrada", async () => {
+      const [review] = await db
+        .select({ id: reviews.id })
+        .from(reviews)
+        .where(eq(reviews.title, EDIT_REVIEW_TITLE));
+
+      const images = await db.select().from(reviewImages).where(eq(reviewImages.reviewId, review.id));
+
+      expect(images).toHaveLength(1);
+      expect(images[0].altText).toBe("Segunda imagen");
+    });
   });
 });
