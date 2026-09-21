@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 export const reviewStatusEnum = pgEnum("review_status", ["draft", "published"]);
+export const reviewKindEnum = pgEnum("review_kind", ["critica", "entrevista"]);
 export const commentStatusEnum = pgEnum("comment_status", ["pending", "approved", "rejected"]);
 export const reactionTypeEnum = pgEnum("reaction_type", ["like", "love", "wow", "applause"]);
 
@@ -48,6 +49,7 @@ export const reviews = pgTable("reviews", {
   body: text("body").notNull(),
   contentJson: jsonb("content_json"),
   slug: text("slug").notNull().unique(),
+  kind: reviewKindEnum("kind").notNull().default("critica"),
   status: reviewStatusEnum("status").notNull().default("draft"),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   viewCount: integer("view_count").notNull().default(0),
@@ -55,6 +57,7 @@ export const reviews = pgTable("reviews", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("idx_reviews_status").on(table.status, table.publishedAt),
+  index("idx_reviews_kind_status").on(table.kind, table.status, table.publishedAt),
 ]);
 
 export const reviewImages = pgTable("review_images", {
