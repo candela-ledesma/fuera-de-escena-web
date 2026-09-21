@@ -187,6 +187,18 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("comentar y borrar el comentario", async () => {
+      // Este paso es intermitente por un bug real de la app (no del test):
+      // el POST de la Server Action llega al servidor, el comentario se
+      // persiste y la respuesta vuelve con 200 y el RSC payload correcto,
+      // pero a veces React no refleja esa actualización en el DOM visible
+      // (ni el toast ni el comentario nuevo aparecen), probablemente por
+      // una condición de carrera con el page.reload() del paso anterior.
+      // Confirmado con trace de Playwright: ver memoria de proyecto
+      // "comment-toast-race-condition". No ajustar timeouts/selectores acá
+      // sin antes revisar esa nota — ya se probaron waitForTimeout,
+      // networkidle y un retry basado en el estado "Publicando…", ninguno
+      // lo resuelve de forma consistente porque la causa no es de timing
+      // del cliente sino de sincronización de estado tras la Server Action.
       await page.getByLabel("Tu nombre").fill(COMMENT.authorName);
       await page.getByLabel("Comentario").fill(COMMENT.body);
       await page.getByRole("button", { name: "Publicar comentario" }).click();
@@ -196,6 +208,8 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByText(COMMENT.authorName)).toBeVisible();
 
       await page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+      await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText(COMMENT.body)).not.toBeVisible();
 
       await page.goto("/panel");
@@ -215,6 +229,8 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page.getByText("Anónimo")).toBeVisible();
 
       await page.getByRole("button", { name: "Borrar comentario de Anónimo" }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+      await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText("Comentario sin nombre de autora.")).not.toBeVisible();
 
       await page.goto("/panel");
