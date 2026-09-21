@@ -76,7 +76,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
   });
@@ -452,7 +452,7 @@ test.describe("Vista pública (sin sesión)", () => {
 
       await page.goto("/login");
       await page.getByLabel("Email").fill(TEST_EMAIL!);
-      await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+      await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
       await page.getByRole("button", { name: "Ingresar" }).click();
       await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
 
