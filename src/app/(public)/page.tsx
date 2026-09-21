@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { PublicNavTabs } from "@/components/public-nav-tabs";
 import { auth } from "@/lib/auth/config";
 import { formatDateEs } from "@/lib/utils";
 import { getPublishedReviews } from "@/features/reviews/queries";
@@ -105,13 +106,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-6 py-2">
-          <span className="border-b-2 border-primary py-2 text-xs font-semibold uppercase tracking-[0.06em] text-[#6E561F]">
-            Críticas teatrales
-          </span>
-        </div>
-      </div>
+      <PublicNavTabs active="/" />
 
       <main className="mx-auto max-w-5xl px-5 py-8">
         {reviews.length === 0 ? (
