@@ -66,7 +66,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(TEST_PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
   });
@@ -162,6 +162,8 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(page.getByText(COMMENT.body)).toBeVisible();
 
       await page.getByRole("button", { name: `Borrar comentario de ${COMMENT.authorName}` }).click();
+      await expect(page.getByRole("alertdialog")).toBeVisible();
+      await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText(COMMENT.body)).not.toBeVisible();
 
       await page.goto("/panel/entrevistas");
@@ -302,7 +304,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
   test("el panel de críticas y el de entrevistas mantienen los listados separados", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(TEST_PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
 
@@ -338,10 +340,10 @@ test.describe("Auth: gestión de entrevistas requiere sesión", () => {
     page,
   }) => {
     await page.goto("/panel/entrevistas");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login(\?|$)/);
 
     await page.goto("/panel/entrevistas/nueva");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/login(\?|$)/);
 
     const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
     const [interview] = await db
@@ -359,7 +361,7 @@ test.describe("Auth: gestión de entrevistas requiere sesión", () => {
 
     try {
       await page.goto(`/panel/entrevistas/${"entrevista-regresion-auth-anonima"}`);
-      await expect(page).toHaveURL(/\/login$/);
+      await expect(page).toHaveURL(/\/login(\?|$)/);
     } finally {
       await db.delete(reviews).where(eq(reviews.id, interview.id));
     }
@@ -385,7 +387,7 @@ test.describe("Responsive: sin overflow horizontal en panel y público de entrev
   test("375px y 320px en /panel/entrevistas", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña").fill(TEST_PASSWORD!);
+    await page.locator("#password").fill(TEST_PASSWORD!);
     await page.getByRole("button", { name: "Ingresar" }).click();
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
 
