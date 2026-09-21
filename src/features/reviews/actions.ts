@@ -172,6 +172,7 @@ export async function createReview(
     const review = await insertReview(
       {
         authorId,
+        kind: "critica",
         title,
         venue: venue ?? null,
         eventDate: eventDate ?? null,
@@ -210,7 +211,7 @@ export async function updateReviewAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
 
   if (!existing) {
     return { error: "La crítica no existe." };
@@ -284,7 +285,7 @@ export async function updateReviewAction(
 
 export async function deleteReviewAction(reviewSlug: string): Promise<void> {
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
 
   if (!existing) {
     return;
@@ -304,7 +305,7 @@ export async function setReviewStatusAction(
   status: "draft" | "published",
 ): Promise<void> {
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId);
+  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
 
   if (!existing) {
     return;
@@ -373,13 +374,13 @@ export async function saveDraftAction(
   };
 
   if (reviewId) {
-    const existing = await getReviewByIdForAuthor(reviewId, authorId);
+    const existing = await getReviewByIdForAuthor(reviewId, authorId, "critica");
 
     if (!existing) {
       return { error: "El borrador no existe." };
     }
 
-    const updated = await updateReviewDraftFields(reviewId, authorId, fields);
+    const updated = await updateReviewDraftFields(reviewId, authorId, "critica", fields);
 
     if (!updated) {
       return { error: "No se pudo guardar el borrador." };
@@ -396,6 +397,7 @@ export async function saveDraftAction(
 
   const created = await insertReview({
     authorId,
+    kind: "critica",
     title: title || "Sin título",
     venue: fields.venue,
     eventDate: fields.eventDate,

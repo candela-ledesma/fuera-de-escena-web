@@ -17,7 +17,7 @@ function formatEventDate(value: string | null): string | null {
 }
 
 export default async function HomePage() {
-  const [session, reviews] = await Promise.all([auth(), getPublishedReviews()]);
+  const [session, reviews] = await Promise.all([auth(), getPublishedReviews("critica")]);
   const isAuthor = Boolean(session?.user);
 
   return (

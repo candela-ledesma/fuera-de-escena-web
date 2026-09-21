@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAuthorSession } from "@/lib/auth/guards";
+import { reviewPublicPath } from "@/lib/utils";
 
 import { commentFormSchema } from "./schema";
 import {
@@ -31,20 +32,20 @@ export async function createCommentAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const reviewId = await getPublishedReviewIdBySlug(reviewSlug);
+  const review = await getPublishedReviewIdBySlug(reviewSlug);
 
-  if (!reviewId) {
-    return { error: "La crítica no existe." };
+  if (!review) {
+    return { error: "La publicación no existe." };
   }
 
   await insertComment({
-    reviewId,
+    reviewId: review.id,
     authorName: parsed.data.authorName,
     body: parsed.data.body,
     status: "approved",
   });
 
-  revalidatePath(`/critica/${reviewSlug}`);
+  revalidatePath(reviewPublicPath(review.kind, reviewSlug));
 
   return {};
 }
@@ -52,10 +53,10 @@ export async function createCommentAction(
 export async function deleteCommentAction(commentId: string): Promise<void> {
   await requireAuthorSession();
 
-  const reviewSlug = await getCommentReviewSlug(commentId);
+  const review = await getCommentReviewSlug(commentId);
   await deleteComment(commentId);
 
-  if (reviewSlug) {
-    revalidatePath(`/critica/${reviewSlug}`);
+  if (review) {
+    revalidatePath(reviewPublicPath(review.kind, review.slug));
   }
 }

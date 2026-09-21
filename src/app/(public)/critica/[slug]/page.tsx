@@ -29,7 +29,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const review = await getPublishedReviewBySlug(slug);
+  const review = await getPublishedReviewBySlug(slug, "critica");
 
   if (!review) {
     return { title: "Crítica no encontrada" };
@@ -47,7 +47,7 @@ export default async function ReviewDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const review = await getPublishedReviewBySlug(slug);
+  const review = await getPublishedReviewBySlug(slug, "critica");
 
   if (!review) {
     notFound();

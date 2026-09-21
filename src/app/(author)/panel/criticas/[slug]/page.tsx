@@ -28,7 +28,7 @@ export default async function EditReviewPage({
   }
 
   const [review, categories] = await Promise.all([
-    getReviewBySlugForAuthor(slug, session.user.id),
+    getReviewBySlugForAuthor(slug, session.user.id, "critica"),
     getCategories(),
   ]);
 

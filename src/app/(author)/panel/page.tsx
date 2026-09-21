@@ -22,8 +22,8 @@ export default async function PanelPage() {
   }
 
   const [stats, reviews] = await Promise.all([
-    getAuthorReviewStats(session.user.id),
-    getReviewsByAuthor(session.user.id),
+    getAuthorReviewStats(session.user.id, "critica"),
+    getReviewsByAuthor(session.user.id, "critica"),
   ]);
 
   return (

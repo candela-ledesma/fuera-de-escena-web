@@ -4,6 +4,8 @@ export const MAX_REVIEW_IMAGES = 2;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+export const reviewKindSchema = z.enum(["critica", "entrevista"]).default("critica");
+
 export const reviewContentSchema = z.object({
   type: z.literal("doc"),
   content: z.array(z.any()),
@@ -64,6 +66,69 @@ export const draftFormSchema = z.object({
         return JSON.parse(value) as unknown;
       } catch {
         ctx.addIssue({ code: "custom", message: "El contenido de la crítica no es válido." });
+        return z.NEVER;
+      }
+    })
+    .pipe(reviewContentSchema.optional()),
+  tags: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) =>
+      (value ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0),
+    ),
+});
+
+export const interviewFormSchema = z.object({
+  title: z.string().trim().min(1, "El título es obligatorio.").max(200),
+  contentJson: z
+    .string()
+    .trim()
+    .min(1, "El texto de la entrevista es obligatorio.")
+    .transform((value, ctx) => {
+      try {
+        return JSON.parse(value) as unknown;
+      } catch {
+        ctx.addIssue({ code: "custom", message: "El contenido de la entrevista no es válido." });
+        return z.NEVER;
+      }
+    })
+    .pipe(reviewContentSchema),
+  tags: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) =>
+      (value ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0),
+    ),
+  coverIndex: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_REVIEW_IMAGES - 1)
+    .optional()
+    .default(0),
+});
+
+export const interviewDraftFormSchema = z.object({
+  title: z.string().trim().max(200).optional().default(""),
+  contentJson: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value, ctx) => {
+      if (!value) return undefined;
+
+      try {
+        return JSON.parse(value) as unknown;
+      } catch {
+        ctx.addIssue({ code: "custom", message: "El contenido de la entrevista no es válido." });
         return z.NEVER;
       }
     })
