@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 
 export function PanelBackLink() {
   const pathname = usePathname();
-  const isReviewEditor = pathname.startsWith("/panel/criticas");
+  const isInterviewEditor = pathname.startsWith("/panel/entrevistas");
+  const isReviewEditor = pathname.startsWith("/panel/criticas") || isInterviewEditor;
 
   const href = isReviewEditor ? "/panel" : "/";
   const label = isReviewEditor ? "Volver al panel" : "Volver a inicio";

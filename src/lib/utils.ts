@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function reviewPublicPath(kind: "critica" | "entrevista", slug: string): string {
+  return kind === "entrevista" ? `/entrevista/${slug}` : `/critica/${slug}`;
+}
+
 export function formatDateEs(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
 

@@ -5,11 +5,13 @@ import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
+import { reviewPublicPath } from "@/lib/utils";
+
 import { ANON_ID_COOKIE, toggleReactionSchema } from "./schema";
 import {
   deleteReactionByReviewAndAnon,
   getAnonReactionByReviewId,
-  isReviewPublished,
+  getPublishedReviewKind,
   setReaction,
 } from "./queries";
 
@@ -53,9 +55,9 @@ export async function toggleReaction(
     return;
   }
 
-  const published = await isReviewPublished(parsed.data.reviewId);
+  const kind = await getPublishedReviewKind(parsed.data.reviewId);
 
-  if (!published) {
+  if (!kind) {
     return;
   }
 
@@ -68,5 +70,5 @@ export async function toggleReaction(
     await setReaction(parsed.data.reviewId, parsed.data.type, anonId);
   }
 
-  revalidatePath(`/critica/${reviewSlug}`);
+  revalidatePath(reviewPublicPath(kind, reviewSlug));
 }

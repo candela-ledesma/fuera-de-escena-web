@@ -2,8 +2,10 @@ import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
 import { categories, comments, reactions, reviewImages, reviews, reviewTags, tags } from "@/lib/db/schema";
+import type { reviewKindEnum } from "@/lib/db/schema";
 
 type DbClient = typeof db | Parameters<Parameters<(typeof db)["transaction"]>[0]>[0];
+type ReviewKind = (typeof reviewKindEnum.enumValues)[number];
 
 export async function getCategories() {
   return db.select({ id: categories.id, name: categories.name, slug: categories.slug }).from(categories).orderBy(categories.name);
@@ -19,6 +21,7 @@ const reactionsCountSql = sql<number>`(
 
 export async function getReviewsByAuthor(
   authorId: string,
+  kind: ReviewKind,
   orderBy: "recent" | "popular" = "recent",
 ) {
   return db
@@ -39,11 +42,11 @@ export async function getReviewsByAuthor(
     })
     .from(reviews)
     .leftJoin(reviewImages, and(eq(reviewImages.reviewId, reviews.id), eq(reviewImages.isCover, true)))
-    .where(eq(reviews.authorId, authorId))
+    .where(and(eq(reviews.authorId, authorId), eq(reviews.kind, kind)))
     .orderBy(orderBy === "popular" ? desc(reviews.viewCount) : desc(reviews.updatedAt));
 }
 
-export async function getAuthorReviewStats(authorId: string) {
+export async function getAuthorReviewStats(authorId: string, kind: ReviewKind) {
   const [totals] = await db
     .select({
       total: sql<number>`count(*)`,
@@ -52,12 +55,12 @@ export async function getAuthorReviewStats(authorId: string) {
       totalViews: sql<number>`coalesce(sum(${reviews.viewCount}), 0)`,
     })
     .from(reviews)
-    .where(eq(reviews.authorId, authorId));
+    .where(and(eq(reviews.authorId, authorId), eq(reviews.kind, kind)));
 
   const [mostViewed] = await db
     .select({ title: reviews.title, slug: reviews.slug, viewCount: reviews.viewCount })
     .from(reviews)
-    .where(eq(reviews.authorId, authorId))
+    .where(and(eq(reviews.authorId, authorId), eq(reviews.kind, kind)))
     .orderBy(desc(reviews.viewCount))
     .limit(1);
 
@@ -70,27 +73,27 @@ export async function getAuthorReviewStats(authorId: string) {
   };
 }
 
-export async function getReviewBySlugForAuthor(slug: string, authorId: string) {
+export async function getReviewBySlugForAuthor(slug: string, authorId: string, kind: ReviewKind) {
   const [review] = await db
     .select()
     .from(reviews)
-    .where(and(eq(reviews.slug, slug), eq(reviews.authorId, authorId)))
+    .where(and(eq(reviews.slug, slug), eq(reviews.authorId, authorId), eq(reviews.kind, kind)))
     .limit(1);
 
   return review ?? null;
 }
 
-export async function getReviewByIdForAuthor(reviewId: string, authorId: string) {
+export async function getReviewByIdForAuthor(reviewId: string, authorId: string, kind: ReviewKind) {
   const [review] = await db
     .select()
     .from(reviews)
-    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId)))
+    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId), eq(reviews.kind, kind)))
     .limit(1);
 
   return review ?? null;
 }
 
-export async function getPublishedReviews() {
+export async function getPublishedReviews(kind: ReviewKind) {
   return db
     .select({
       id: reviews.id,
@@ -107,11 +110,11 @@ export async function getPublishedReviews() {
     .from(reviews)
     .leftJoin(categories, eq(reviews.categoryId, categories.id))
     .leftJoin(reviewImages, and(eq(reviewImages.reviewId, reviews.id), eq(reviewImages.isCover, true)))
-    .where(eq(reviews.status, "published"))
+    .where(and(eq(reviews.status, "published"), eq(reviews.kind, kind)))
     .orderBy(desc(reviews.publishedAt));
 }
 
-export async function getPublishedReviewBySlug(slug: string) {
+export async function getPublishedReviewBySlug(slug: string, kind: ReviewKind) {
   const [review] = await db
     .select({
       id: reviews.id,
@@ -127,7 +130,7 @@ export async function getPublishedReviewBySlug(slug: string) {
     })
     .from(reviews)
     .leftJoin(categories, eq(reviews.categoryId, categories.id))
-    .where(and(eq(reviews.slug, slug), eq(reviews.status, "published")))
+    .where(and(eq(reviews.slug, slug), eq(reviews.status, "published"), eq(reviews.kind, kind)))
     .limit(1);
 
   return review ?? null;
@@ -241,12 +244,13 @@ export async function updateReview(
 export async function updateReviewDraftFields(
   reviewId: string,
   authorId: string,
+  kind: ReviewKind,
   fields: {
     title: string;
-    venue: string | null;
-    eventDate: string | null;
-    categoryId: string | null;
-    rating: number | null;
+    venue?: string | null;
+    eventDate?: string | null;
+    categoryId?: string | null;
+    rating?: number | null;
     body: string;
     contentJson: unknown;
   },
@@ -254,7 +258,7 @@ export async function updateReviewDraftFields(
   const [updated] = await db
     .update(reviews)
     .set({ ...fields, updatedAt: new Date() })
-    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId)))
+    .where(and(eq(reviews.id, reviewId), eq(reviews.authorId, authorId), eq(reviews.kind, kind)))
     .returning({ id: reviews.id, slug: reviews.slug, updatedAt: reviews.updatedAt });
 
   return updated ?? null;

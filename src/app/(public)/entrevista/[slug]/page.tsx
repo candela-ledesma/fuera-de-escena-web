@@ -29,27 +29,27 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const review = await getPublishedReviewBySlug(slug, "critica");
+  const interview = await getPublishedReviewBySlug(slug, "entrevista");
 
-  if (!review) {
-    return { title: "Crítica no encontrada" };
+  if (!interview) {
+    return { title: "Entrevista no encontrada" };
   }
 
   return {
-    title: review.title,
-    description: review.body.slice(0, 160),
+    title: interview.title,
+    description: interview.body.slice(0, 160),
   };
 }
 
-export default async function ReviewDetailPage({
+export default async function InterviewDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const review = await getPublishedReviewBySlug(slug, "critica");
+  const interview = await getPublishedReviewBySlug(slug, "entrevista");
 
-  if (!review) {
+  if (!interview) {
     notFound();
   }
 
@@ -57,18 +57,18 @@ export default async function ReviewDetailPage({
   const anonId = cookieStore.get(ANON_ID_COOKIE)?.value;
 
   const [tagNames, images, comments, session, reactionCounts] = await Promise.all([
-    getReviewTagNames(review.id),
-    getReviewImagesForDisplay(review.id),
-    getApprovedCommentsByReviewId(review.id),
+    getReviewTagNames(interview.id),
+    getReviewImagesForDisplay(interview.id),
+    getApprovedCommentsByReviewId(interview.id),
     auth(),
-    getReactionCountsByReviewId(review.id),
+    getReactionCountsByReviewId(interview.id),
   ]);
   const canModerate = Boolean(session?.user);
-  const activeReactionType = anonId ? await getAnonReactionByReviewId(review.id, anonId) : null;
+  const activeReactionType = anonId ? await getAnonReactionByReviewId(interview.id, anonId) : null;
 
   return (
     <div className="min-h-dvh bg-background">
-      <ViewTracker reviewId={review.id} />
+      <ViewTracker reviewId={interview.id} />
 
       <header className="sticky top-0 z-50 border-b border-border bg-card">
         <div className="mx-auto flex h-[60px] max-w-[720px] items-center px-6">
@@ -82,23 +82,13 @@ export default async function ReviewDetailPage({
       </header>
 
       <main className="mx-auto max-w-[720px] px-6 py-10">
-        {review.categoryName ? (
-          <span className="mb-3 inline-block rounded-sm bg-primary px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-primary-foreground">
-            {review.categoryName}
-          </span>
-        ) : null}
+        <span className="mb-3 inline-block rounded-sm bg-primary px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-primary-foreground">
+          Entrevista
+        </span>
 
         <h1 className="font-display text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
-          {review.title}
+          {interview.title}
         </h1>
-
-        <p className="mt-2 text-sm italic text-muted">
-          {[review.venue, review.eventDate].filter(Boolean).join(" · ")}
-        </p>
-
-        {review.rating ? (
-          <p className="mt-3 text-lg tracking-[2px] text-primary">{"★".repeat(review.rating)}</p>
-        ) : null}
 
         {images.length > 0 ? (
           <div className={`mt-6 grid gap-3 ${images.length > 1 ? "sm:grid-cols-2" : ""}`}>
@@ -116,15 +106,16 @@ export default async function ReviewDetailPage({
         ) : null}
 
         <div className="mt-8">
-          <ReviewContent contentJson={review.contentJson} />
+          <ReviewContent contentJson={interview.contentJson} />
         </div>
 
         <div className="mt-8 border-t border-border pt-6">
           <ReactionButtons
-            reviewId={review.id}
-            reviewSlug={review.slug}
+            reviewId={interview.id}
+            reviewSlug={interview.slug}
             counts={reactionCounts}
             activeType={activeReactionType}
+            prompt="¿Qué te pareció la entrevista?"
           />
         </div>
 
@@ -149,7 +140,7 @@ export default async function ReviewDetailPage({
           </div>
 
           <div className="mt-6 border-t border-border pt-6">
-            <CommentForm reviewSlug={review.slug} />
+            <CommentForm reviewSlug={interview.slug} />
           </div>
         </section>
       </main>

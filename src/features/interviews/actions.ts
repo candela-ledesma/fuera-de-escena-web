@@ -1,35 +1,38 @@
 "use server";
 
 import { del, put } from "@vercel/blob";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-import { auth } from "@/lib/auth/config";
 import { requireAuthorSession } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, draftFormSchema, reviewFormSchema, slugify } from "./schema";
-import { validateAndNormalizeContent } from "./content-validation";
+import { validateAndNormalizeContent } from "@/features/reviews/content-validation";
 import {
   deleteReview,
   findTagsByName,
-  getReviewBySlugForAuthor,
   getReviewByIdForAuthor,
+  getReviewBySlugForAuthor,
   getReviewImages,
-  incrementReviewViewCount,
   insertReview,
   insertTags,
-  isReviewPublished,
   replaceReviewImages,
   replaceReviewTags,
   setCoverImageByPosition,
   slugExists,
   updateReview,
   updateReviewDraftFields,
-} from "./queries";
+} from "@/features/reviews/queries";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE_BYTES,
+  MAX_REVIEW_IMAGES,
+  interviewDraftFormSchema,
+  interviewFormSchema,
+  slugify,
+} from "@/features/reviews/schema";
 
-export type ReviewFormState = {
+export type InterviewFormState = {
   error?: string;
 };
 
@@ -59,12 +62,8 @@ async function resolveTagIds(tagNames: string[]) {
 }
 
 function parseForm(formData: FormData) {
-  return reviewFormSchema.safeParse({
+  return interviewFormSchema.safeParse({
     title: formData.get("title"),
-    venue: formData.get("venue") || undefined,
-    eventDate: formData.get("eventDate") || undefined,
-    categoryId: formData.get("categoryId"),
-    rating: formData.get("rating"),
     contentJson: formData.get("contentJson"),
     tags: formData.get("tags") || undefined,
     coverIndex: formData.get("coverIndex") || undefined,
@@ -83,16 +82,6 @@ function validateImageFile(file: File): string | null {
   return null;
 }
 
-/**
- * Reconstruye la lista final de imágenes en el orden exacto en que el
- * ImageUploader las mostraba al momento del submit. El uploader manda un
- * campo "imageOrder" por slot ("new" o "existing:<storagePath>"), en orden,
- * junto con los <input type="file" name="images"> de las nuevas (en ese
- * mismo orden relativo entre sí) y un "imageAlts" por slot. Esto permite
- * distinguir "no se tocaron las imágenes" (sin campo imageOrder) de "se
- * quedó sin imágenes" (imageOrder presente pero vacío), y sobre todo permite
- * saber qué imágenes existentes se borraron para poder eliminarlas.
- */
 async function resolveFinalImages(
   formData: FormData,
   slug: string,
@@ -119,7 +108,7 @@ async function resolveFinalImages(
       if (entry === "new") {
         const file = files[fileIndex];
         fileIndex += 1;
-        const blob = await put(`reviews/${slug}-${Date.now()}-${index}`, file, {
+        const blob = await put(`interviews/${slug}-${Date.now()}-${index}`, file, {
           access: "public",
           addRandomSuffix: true,
         });
@@ -140,10 +129,10 @@ async function resolveFinalImages(
   return { images };
 }
 
-export async function createReview(
-  _prevState: ReviewFormState,
+export async function createInterview(
+  _prevState: InterviewFormState,
   formData: FormData,
-): Promise<ReviewFormState> {
+): Promise<InterviewFormState> {
   const parsed = parseForm(formData);
 
   if (!parsed.success) {
@@ -151,12 +140,12 @@ export async function createReview(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+  const { title, contentJson, tags, coverIndex } = parsed.data;
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
   if (!validatedContent) {
-    return { error: "El contenido de la crítica no es válido." };
+    return { error: "El contenido de la entrevista no es válido." };
   }
 
   const slug = await resolveUniqueSlug(title);
@@ -169,15 +158,15 @@ export async function createReview(
   }
 
   await db.transaction(async (tx) => {
-    const review = await insertReview(
+    const interview = await insertReview(
       {
         authorId,
-        kind: "critica",
+        kind: "entrevista",
         title,
-        venue: venue ?? null,
-        eventDate: eventDate ?? null,
-        categoryId,
-        rating,
+        venue: null,
+        eventDate: null,
+        categoryId: null,
+        rating: null,
         body: validatedContent.plainText,
         contentJson: validatedContent.doc,
         slug,
@@ -186,24 +175,24 @@ export async function createReview(
     );
 
     if (tagIds.length > 0) {
-      await replaceReviewTags(review.id, tagIds, tx);
+      await replaceReviewTags(interview.id, tagIds, tx);
     }
 
     if (imagesResult.images.length > 0) {
-      await replaceReviewImages(review.id, imagesResult.images, tx);
+      await replaceReviewImages(interview.id, imagesResult.images, tx);
     }
   });
 
-  revalidatePath("/panel");
+  revalidatePath("/panel/entrevistas");
   revalidatePath("/");
-  redirect("/panel?saved=created");
+  redirect("/panel/entrevistas?saved=created");
 }
 
-export async function updateReviewAction(
-  reviewSlug: string,
-  _prevState: ReviewFormState,
+export async function updateInterviewAction(
+  interviewSlug: string,
+  _prevState: InterviewFormState,
   formData: FormData,
-): Promise<ReviewFormState> {
+): Promise<InterviewFormState> {
   const parsed = parseForm(formData);
 
   if (!parsed.success) {
@@ -211,18 +200,18 @@ export async function updateReviewAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
+  const existing = await getReviewBySlugForAuthor(interviewSlug, authorId, "entrevista");
 
   if (!existing) {
-    return { error: "La crítica no existe." };
+    return { error: "La entrevista no existe." };
   }
 
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+  const { title, contentJson, tags, coverIndex } = parsed.data;
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
   if (!validatedContent) {
-    return { error: "El contenido de la crítica no es válido." };
+    return { error: "El contenido de la entrevista no es válido." };
   }
 
   const slug = existing.slug;
@@ -259,10 +248,6 @@ export async function updateReviewAction(
       existing.id,
       {
         title,
-        venue: venue ?? null,
-        eventDate: eventDate ?? null,
-        categoryId,
-        rating,
         body: validatedContent.plainText,
         contentJson: validatedContent.doc,
         slug,
@@ -277,15 +262,15 @@ export async function updateReviewAction(
     await Promise.all(imagesToDelete.map((storagePath) => del(storagePath)));
   }
 
-  revalidatePath("/panel");
+  revalidatePath("/panel/entrevistas");
   revalidatePath("/");
-  revalidatePath(`/critica/${slug}`);
-  redirect("/panel?saved=updated");
+  revalidatePath(`/entrevista/${slug}`);
+  redirect("/panel/entrevistas?saved=updated");
 }
 
-export async function deleteReviewAction(reviewSlug: string): Promise<void> {
+export async function deleteInterviewAction(interviewSlug: string): Promise<void> {
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
+  const existing = await getReviewBySlugForAuthor(interviewSlug, authorId, "entrevista");
 
   if (!existing) {
     return;
@@ -295,17 +280,17 @@ export async function deleteReviewAction(reviewSlug: string): Promise<void> {
   await Promise.all(images.map((image) => del(image.storagePath)));
 
   await deleteReview(existing.id);
-  revalidatePath("/panel");
+  revalidatePath("/panel/entrevistas");
   revalidatePath("/");
-  revalidatePath(`/critica/${reviewSlug}`);
+  revalidatePath(`/entrevista/${interviewSlug}`);
 }
 
-export async function setReviewStatusAction(
-  reviewSlug: string,
+export async function setInterviewStatusAction(
+  interviewSlug: string,
   status: "draft" | "published",
 ): Promise<void> {
   const { authorId } = await requireAuthorSession();
-  const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
+  const existing = await getReviewBySlugForAuthor(interviewSlug, authorId, "entrevista");
 
   if (!existing) {
     return;
@@ -316,28 +301,23 @@ export async function setReviewStatusAction(
     publishedAt: status === "published" ? new Date() : null,
   });
 
-  revalidatePath("/panel");
+  revalidatePath("/panel/entrevistas");
   revalidatePath("/");
-  revalidatePath(`/critica/${reviewSlug}`);
+  revalidatePath(`/entrevista/${interviewSlug}`);
 }
 
-export type SaveDraftResult = { id: string; slug: string; savedAt: string } | { error: string };
+export type SaveInterviewDraftResult = { id: string; slug: string; savedAt: string } | { error: string };
 
 /**
  * Autosave: no hace revalidatePath ni redirect (no navega), y usa un
- * schema parcial porque un borrador puede estar incompleto. No toca
- * imágenes ni el estado publicado/despublicado de una crítica existente.
+ * schema parcial porque un borrador puede estar incompleto.
  */
-export async function saveDraftAction(
-  reviewId: string | null,
+export async function saveInterviewDraftAction(
+  interviewId: string | null,
   formData: FormData,
-): Promise<SaveDraftResult> {
-  const parsed = draftFormSchema.safeParse({
+): Promise<SaveInterviewDraftResult> {
+  const parsed = interviewDraftFormSchema.safeParse({
     title: formData.get("title") || undefined,
-    venue: formData.get("venue") || undefined,
-    eventDate: formData.get("eventDate") || undefined,
-    categoryId: formData.get("categoryId") || undefined,
-    rating: formData.get("rating") || undefined,
     contentJson: formData.get("contentJson") || undefined,
     tags: formData.get("tags") || undefined,
   });
@@ -347,7 +327,7 @@ export async function saveDraftAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags } = parsed.data;
+  const { title, contentJson, tags } = parsed.data;
 
   let body = "";
   let normalizedContentJson: unknown = null;
@@ -363,31 +343,25 @@ export async function saveDraftAction(
     normalizedContentJson = validatedContent.doc;
   }
 
-  const fields = {
-    title,
-    venue: venue ?? null,
-    eventDate: eventDate ?? null,
-    categoryId: categoryId ?? null,
-    rating: rating ?? null,
-    body,
-    contentJson: normalizedContentJson,
-  };
-
-  if (reviewId) {
-    const existing = await getReviewByIdForAuthor(reviewId, authorId, "critica");
+  if (interviewId) {
+    const existing = await getReviewByIdForAuthor(interviewId, authorId, "entrevista");
 
     if (!existing) {
       return { error: "El borrador no existe." };
     }
 
-    const updated = await updateReviewDraftFields(reviewId, authorId, "critica", fields);
+    const updated = await updateReviewDraftFields(interviewId, authorId, "entrevista", {
+      title,
+      body,
+      contentJson: normalizedContentJson,
+    });
 
     if (!updated) {
       return { error: "No se pudo guardar el borrador." };
     }
 
     const tagIds = await resolveTagIds(tags);
-    await replaceReviewTags(reviewId, tagIds);
+    await replaceReviewTags(interviewId, tagIds);
 
     return { id: updated.id, slug: updated.slug, savedAt: updated.updatedAt.toISOString() };
   }
@@ -397,12 +371,12 @@ export async function saveDraftAction(
 
   const created = await insertReview({
     authorId,
-    kind: "critica",
+    kind: "entrevista",
     title: title || "Sin título",
-    venue: fields.venue,
-    eventDate: fields.eventDate,
-    categoryId: fields.categoryId,
-    rating: fields.rating,
+    venue: null,
+    eventDate: null,
+    categoryId: null,
+    rating: null,
     body,
     contentJson: normalizedContentJson,
     slug,
@@ -413,41 +387,4 @@ export async function saveDraftAction(
   }
 
   return { id: created.id, slug: created.slug, savedAt: new Date().toISOString() };
-}
-
-const VIEW_DEDUPE_WINDOW_SECONDS = 60 * 60 * 24;
-
-/**
- * Mutación pública: la puede llamar cualquier visitante anónimo.
- * Solo incrementa; no acepta ni devuelve nada sensible. Deduplicada por
- * cookie opaca (sin PII) de 24h, y no cuenta vistas de la propia autora.
- */
-export async function incrementReviewView(reviewId: string): Promise<void> {
-  const session = await auth();
-
-  if (session?.user) {
-    return;
-  }
-
-  const published = await isReviewPublished(reviewId);
-
-  if (!published) {
-    return;
-  }
-
-  const cookieStore = await cookies();
-  const cookieName = `viewed_${reviewId}`;
-
-  if (cookieStore.get(cookieName)) {
-    return;
-  }
-
-  await incrementReviewViewCount(reviewId);
-
-  cookieStore.set(cookieName, "1", {
-    maxAge: VIEW_DEDUPE_WINDOW_SECONDS,
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
 }

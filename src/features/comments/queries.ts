@@ -18,12 +18,12 @@ export async function getApprovedCommentsByReviewId(reviewId: string) {
 
 export async function getPublishedReviewIdBySlug(slug: string) {
   const [review] = await db
-    .select({ id: reviews.id })
+    .select({ id: reviews.id, kind: reviews.kind })
     .from(reviews)
     .where(and(eq(reviews.slug, slug), eq(reviews.status, "published")))
     .limit(1);
 
-  return review?.id ?? null;
+  return review ?? null;
 }
 
 export async function insertComment(comment: typeof comments.$inferInsert) {
@@ -34,13 +34,13 @@ export async function insertComment(comment: typeof comments.$inferInsert) {
 
 export async function getCommentReviewSlug(commentId: string) {
   const [row] = await db
-    .select({ slug: reviews.slug })
+    .select({ slug: reviews.slug, kind: reviews.kind })
     .from(comments)
     .innerJoin(reviews, eq(comments.reviewId, reviews.id))
     .where(eq(comments.id, commentId))
     .limit(1);
 
-  return row?.slug ?? null;
+  return row ?? null;
 }
 
 export async function deleteComment(commentId: string) {

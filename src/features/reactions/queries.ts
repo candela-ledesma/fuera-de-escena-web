@@ -7,14 +7,14 @@ import type { REACTION_TYPES } from "./schema";
 
 type ReactionType = (typeof REACTION_TYPES)[number];
 
-export async function isReviewPublished(reviewId: string) {
+export async function getPublishedReviewKind(reviewId: string) {
   const [review] = await db
-    .select({ id: reviews.id })
+    .select({ kind: reviews.kind })
     .from(reviews)
     .where(and(eq(reviews.id, reviewId), eq(reviews.status, "published")))
     .limit(1);
 
-  return Boolean(review);
+  return review?.kind ?? null;
 }
 
 export async function getReactionCountsByReviewId(reviewId: string) {
