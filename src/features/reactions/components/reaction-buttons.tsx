@@ -23,11 +23,13 @@ export function ReactionButtons({
   reviewSlug,
   counts,
   activeType,
+  prompt = "¿Qué te pareció la obra?",
 }: {
   reviewId: string;
   reviewSlug: string;
   counts: ReactionCounts;
   activeType: ReactionType | null;
+  prompt?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   // La base es siempre la prop más reciente del Server Component, que se
@@ -94,7 +96,7 @@ export function ReactionButtons({
 
   return (
     <div>
-      <p className="font-display text-lg text-foreground">¿Qué te pareció la obra?</p>
+      <p className="font-display text-lg text-foreground">{prompt}</p>
       <p className="mt-1 text-sm text-muted">
         Tocá para reaccionar · tocá de nuevo para sacar tu reacción
       </p>

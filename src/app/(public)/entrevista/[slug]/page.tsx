@@ -115,6 +115,7 @@ export default async function InterviewDetailPage({
             reviewSlug={interview.slug}
             counts={reactionCounts}
             activeType={activeReactionType}
+            prompt="¿Qué te pareció la entrevista?"
           />
         </div>
 

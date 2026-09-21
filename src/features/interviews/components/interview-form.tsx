@@ -196,6 +196,7 @@ export function InterviewForm({
               ref={editorRef}
               content={defaults.contentJson ?? EMPTY_DOC}
               onChange={handleEditorChange}
+              ariaLabel="Texto de la entrevista"
             />
           </div>
           <input type="hidden" {...register("contentJson")} />

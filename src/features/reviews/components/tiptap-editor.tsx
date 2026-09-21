@@ -145,7 +145,8 @@ export type TiptapEditorHandle = {
 export const TiptapEditor = forwardRef<TiptapEditorHandle, {
   content: unknown;
   onChange: (json: unknown, plainText: string) => void;
-}>(function TiptapEditor({ content, onChange }, ref) {
+  ariaLabel?: string;
+}>(function TiptapEditor({ content, onChange, ariaLabel = "Texto de la crítica" }, ref) {
   const editor = useEditor({
     extensions: editorExtensions,
     content: content as object,
@@ -153,7 +154,7 @@ export const TiptapEditor = forwardRef<TiptapEditorHandle, {
     editorProps: {
       attributes: {
         role: "textbox",
-        "aria-label": "Texto de la crítica",
+        "aria-label": ariaLabel,
         class: "prose-editor pb-16 focus:outline-none",
       },
     },
