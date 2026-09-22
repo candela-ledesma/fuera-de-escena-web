@@ -1,15 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { PublicNavTabs } from "@/components/public-nav-tabs";
-import { auth } from "@/lib/auth/config";
 import { formatDateEs } from "@/lib/utils";
 import { getPublishedReviews } from "@/features/reviews/queries";
 
 export const revalidate = 0;
-
-const INSTAGRAM_URL = "https://www.instagram.com/fueradeescenabb";
 
 function formatEventDate(value: string | null): string | null {
   if (!value) return null;
@@ -18,11 +14,10 @@ function formatEventDate(value: string | null): string | null {
 }
 
 export default async function HomePage() {
-  const [session, reviews] = await Promise.all([auth(), getPublishedReviews("critica")]);
-  const isAuthor = Boolean(session?.user);
+  const reviews = await getPublishedReviews("critica");
 
   return (
-    <div className="min-h-dvh bg-background">
+    <>
       <div className="relative h-[min(38vw,340px)] w-full overflow-hidden bg-[#1A0F0A]">
         <video
           autoPlay
@@ -44,42 +39,6 @@ export default async function HomePage() {
           </p>
         </div>
       </div>
-
-      <header className="sticky top-0 z-50 border-b border-border bg-card">
-        <div className="mx-auto flex h-[60px] max-w-5xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <a href="#" className="flex shrink-0 items-center gap-2 no-underline">
-              <Image
-                src="/brand/logo.png"
-                alt=""
-                width={32}
-                height={32}
-                priority
-                className="size-8 shrink-0 rounded-full border border-border object-cover"
-              />
-              <span className="hidden font-display text-lg font-semibold tracking-[0.03em] text-foreground sm:inline">
-                Fuera de <span>Escena</span>
-              </span>
-            </a>
-            <a
-              href={INSTAGRAM_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="truncate text-[0.62rem] font-light uppercase tracking-[0.18em] text-muted hover:text-[#6E561F]"
-            >
-              @fueradeescenabb
-            </a>
-          </div>
-
-          {isAuthor ? (
-            <div className="flex shrink-0 items-center gap-2">
-              <Button asChild size="sm">
-                <Link href="/panel">Panel de autora</Link>
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      </header>
 
       <section className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-6">
@@ -106,7 +65,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <PublicNavTabs active="/" />
+      <PublicNavTabs />
 
       <main className="mx-auto max-w-5xl px-5 py-8">
         {reviews.length === 0 ? (
@@ -160,23 +119,6 @@ export default async function HomePage() {
           </div>
         )}
       </main>
-
-      <footer className="mt-12 flex flex-col items-center gap-3 border-t border-border px-8 py-8 text-center">
-        <a
-          href={INSTAGRAM_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex min-h-11 items-center text-xs tracking-[0.12em] text-muted hover:text-[#6E561F]"
-        >
-          FUERA DE ESCENA BB · @FUERADEESCENABB
-        </a>
-        <Link
-          href="/login"
-          className="flex min-h-11 items-center text-[0.66rem] uppercase tracking-[0.18em] text-muted hover:text-[#6E561F]"
-        >
-          Acceso
-        </Link>
-      </footer>
-    </div>
+    </>
   );
 }
