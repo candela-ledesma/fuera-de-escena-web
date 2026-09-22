@@ -9,7 +9,6 @@ import { DashboardStats } from "@/features/reviews/components/dashboard-stats";
 import { getAuthorReviewStats, getReviewsByAuthor } from "@/features/reviews/queries";
 import { InterviewList } from "@/features/interviews/components/interview-list";
 import { InterviewSavedToast } from "@/features/interviews/components/saved-toast";
-import { PanelTabs } from "../panel-tabs";
 
 export const metadata: Metadata = {
   title: "Panel · Entrevistas",
@@ -32,7 +31,6 @@ export default async function InterviewsPanelPage() {
       <Suspense fallback={null}>
         <InterviewSavedToast />
       </Suspense>
-      <PanelTabs />
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Entrevistas</h1>
         {interviews.length > 0 ? (

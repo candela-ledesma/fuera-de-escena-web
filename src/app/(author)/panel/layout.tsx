@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/features/auth/actions";
 import { PanelBackLink } from "./panel-back-link";
+import { PanelTabs } from "./panel-tabs";
 
 export default function PanelLayout({ children }: { children: ReactNode }) {
   return (
@@ -18,6 +19,8 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
           </Button>
         </form>
       </header>
+
+      <PanelTabs />
 
       <main className="px-6 py-8">{children}</main>
     </div>
