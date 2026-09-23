@@ -38,6 +38,15 @@ export function formatEventDate(value: string | null, style: "long" | "short" = 
   return `${part("day")} ${part("month").replace(".", "")} ${part("year")}`;
 }
 
+/** Fecha de publicación (timestamp) en el día de Argentina, con los mismos formatos que formatEventDate. */
+export function formatPublishedDate(value: Date | null, style: "long" | "short" = "long"): string | null {
+  if (!value) return null;
+
+  const dayKey = value.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+
+  return formatEventDate(dayKey, style);
+}
+
 export function formatDateEs(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
 
