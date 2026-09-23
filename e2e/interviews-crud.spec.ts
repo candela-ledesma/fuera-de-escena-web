@@ -74,8 +74,8 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
   test("crea, edita, publica, despublica y borra una entrevista", async ({ page }) => {
     await test.step("crear la entrevista desde el tab Entrevistas del panel", async () => {
       await page.goto("/panel");
-      await page.getByRole("link", { name: "Entrevistas" }).click();
-      await expect(page).toHaveURL(/\/panel\/entrevistas$/);
+      await page.getByRole("button", { name: "Entrevistas" }).click();
+      await expect(page).toHaveURL(/\/panel\?tab=entrevistas$/);
 
       await page.getByRole("link", { name: "Escribir una entrevista" }).click();
       await expect(page).toHaveURL(/\/panel\/entrevistas\/nueva$/);
@@ -98,7 +98,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await page.getByRole("radiogroup", { name: "Imagen de portada" }).getByRole("radio").nth(1).click();
 
       await page.getByRole("button", { name: "Crear entrevista" }).click();
-      await expect(page).toHaveURL(/\/panel\/entrevistas$/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/panel\?tab=entrevistas/, { timeout: 15_000 });
       await expect(page.getByText("Entrevista creada.").first()).toBeVisible();
       await expect(page.getByText(INTERVIEW.title)).toBeVisible();
       await expect(page.getByText("Borrador").first()).toBeVisible();
@@ -109,7 +109,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
     await test.step("la entrevista en borrador no aparece en el listado de críticas", async () => {
       await page.goto("/panel");
       await expect(page.getByText(INTERVIEW.title)).not.toBeVisible();
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
     });
 
     await test.step("publicar la entrevista", async () => {
@@ -119,17 +119,16 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(interviewCard.getByRole("link", { name: "Ver publicación" })).toBeVisible();
     });
 
-    await test.step("la entrevista publicada aparece en /entrevistas con la portada elegida, no en el home de críticas", async () => {
-      await page.goto("/entrevistas");
+    await test.step("la entrevista publicada aparece en la tab Entrevistas con la portada elegida, no en la tab de críticas", async () => {
+      await page.goto("/");
+      await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
+
+      await page.getByRole("button", { name: "Entrevistas" }).click();
       const listCard = page.getByRole("link", { name: new RegExp(INTERVIEW.title) });
       await expect(listCard).toBeVisible();
       await expect(listCard.getByAltText(INTERVIEW.imageAlt2)).toBeVisible();
       await expect(listCard.getByAltText(INTERVIEW.imageAlt)).not.toBeVisible();
 
-      await page.goto("/");
-      await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
-
-      await page.goto("/entrevistas");
       await listCard.click();
       await expect(page).toHaveURL(/\/entrevista\/.+/);
       await expect(page.getByRole("heading", { name: INTERVIEW.title })).toBeVisible();
@@ -166,7 +165,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await page.getByRole("button", { name: "Borrar", exact: true }).click();
       await expect(page.getByText(COMMENT.body)).not.toBeVisible();
 
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
     });
 
     await test.step("editar la entrevista y verificar paridad WYSIWYG editor/público", async () => {
@@ -183,7 +182,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await page.getByLabel("Título de la entrevista").fill(editedTitle);
       await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
 
-      await expect(page).toHaveURL(/\/panel\/entrevistas$/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/panel\?tab=entrevistas/, { timeout: 15_000 });
       await expect(page.getByText("Cambios guardados.").first()).toBeVisible();
       await expect(page.getByText(editedTitle)).toBeVisible();
 
@@ -193,11 +192,11 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(page.getByRole("heading", { name: editedTitle })).toBeVisible();
 
       // Revertir el título para que el cleanup por INTERVIEW.title siga operando sobre la misma fila.
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
       await editedCard.getByRole("link", { name: "Editar" }).click();
       await page.getByLabel("Título de la entrevista").fill(INTERVIEW.title);
       await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
-      await expect(page).toHaveURL(/\/panel\/entrevistas$/, { timeout: 15_000 });
+      await expect(page).toHaveURL(/\/panel\?tab=entrevistas/, { timeout: 15_000 });
     });
 
     await test.step("despublicar la entrevista y verificar que desaparece de lo público", async () => {
@@ -206,10 +205,12 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(interviewCard.getByText("Borrador")).toBeVisible();
       await expect(interviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
 
-      await page.goto("/entrevistas");
+      await page.goto("/");
+      await page.getByRole("button", { name: "Entrevistas" }).click();
       await page.reload();
+      await page.getByRole("button", { name: "Entrevistas" }).click();
       await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
     });
 
     await test.step("borrar la entrevista vía ConfirmDialog", async () => {
@@ -240,7 +241,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
     );
     await expect(page.getByText("Borrador")).toBeVisible();
 
-    await page.goto("/panel/entrevistas");
+    await page.goto("/panel?tab=entrevistas");
     const draftCard = page.locator("li", { hasText: DRAFT_INTERVIEW.title });
     await expect(draftCard).toBeVisible();
     await expect(draftCard.getByText("Borrador", { exact: true })).toBeVisible();
@@ -248,7 +249,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
 });
 
 test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
-  test("el home público y /entrevistas mantienen los listados separados", async ({ page }) => {
+  test("el home público mantiene los listados de críticas y entrevistas separados por tab", async ({ page }) => {
     const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
 
     const [interview] = await db
@@ -285,7 +286,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
       await expect(page.getByRole("link", { name: /Crítica de regresión/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Entrevista de regresión/ })).not.toBeVisible();
 
-      await page.goto("/entrevistas");
+      await page.getByRole("button", { name: "Entrevistas" }).click();
       await expect(page.getByRole("link", { name: /Entrevista de regresión/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Crítica de regresión/ })).not.toBeVisible();
 
@@ -327,7 +328,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
       await page.goto("/panel");
       await expect(page.getByText("Entrevista de regresión para panel separado")).not.toBeVisible();
 
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
       await expect(page.getByText("Entrevista de regresión para panel separado")).toBeVisible();
     } finally {
       await db.delete(reviews).where(eq(reviews.id, interview.id));
@@ -339,7 +340,7 @@ test.describe("Auth: gestión de entrevistas requiere sesión", () => {
   test("un visitante anónimo es redirigido a /login al intentar crear, editar o listar entrevistas del panel", async ({
     page,
   }) => {
-    await page.goto("/panel/entrevistas");
+    await page.goto("/panel?tab=entrevistas");
     await expect(page).toHaveURL(/\/login(\?|$)/);
 
     await page.goto("/panel/entrevistas/nueva");
@@ -376,15 +377,16 @@ test.describe("Responsive: sin overflow horizontal en panel y público de entrev
     expect(hasOverflow).toBe(false);
   }
 
-  test("375px y 320px en /entrevistas (público)", async ({ page }) => {
+  test("375px y 320px en la tab Entrevistas del home público", async ({ page }) => {
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 });
-      await page.goto("/entrevistas");
+      await page.goto("/");
+      await page.getByRole("button", { name: "Entrevistas" }).click();
       await expectNoHorizontalOverflow(page);
     }
   });
 
-  test("375px y 320px en /panel/entrevistas", async ({ page }) => {
+  test("375px y 320px en la tab Entrevistas del panel", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("Email").fill(TEST_EMAIL!);
     await page.locator("#password").fill(TEST_PASSWORD!);
@@ -393,7 +395,7 @@ test.describe("Responsive: sin overflow horizontal en panel y público de entrev
 
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 });
-      await page.goto("/panel/entrevistas");
+      await page.goto("/panel?tab=entrevistas");
       await expectNoHorizontalOverflow(page);
     }
   });
