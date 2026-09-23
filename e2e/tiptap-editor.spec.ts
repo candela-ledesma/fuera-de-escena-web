@@ -283,8 +283,15 @@ test.describe("Layout de dos columnas del formulario de crítica", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/panel/criticas/nueva");
 
-    const titleBox = await page.getByLabel("Título de la obra").boundingBox();
-    const venueBox = await page.getByLabel("Teatro / lugar").boundingBox();
+    // boundingBox() no espera: durante el streaming (loading.tsx) el form
+    // está montado pero oculto y devuelve null. Esperamos a que sea visible.
+    const title = page.getByLabel("Título de la obra");
+    const venue = page.getByLabel("Teatro / lugar");
+    await expect(title).toBeVisible();
+    await expect(venue).toBeVisible();
+
+    const titleBox = await title.boundingBox();
+    const venueBox = await venue.boundingBox();
 
     expect(titleBox).not.toBeNull();
     expect(venueBox).not.toBeNull();
@@ -298,8 +305,15 @@ test.describe("Layout de dos columnas del formulario de crítica", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/panel/criticas/nueva");
 
-    const titleBox = await page.getByLabel("Título de la obra").boundingBox();
-    const venueBox = await page.getByLabel("Teatro / lugar").boundingBox();
+    // boundingBox() no espera: durante el streaming (loading.tsx) el form
+    // está montado pero oculto y devuelve null. Esperamos a que sea visible.
+    const title = page.getByLabel("Título de la obra");
+    const venue = page.getByLabel("Teatro / lugar");
+    await expect(title).toBeVisible();
+    await expect(venue).toBeVisible();
+
+    const titleBox = await title.boundingBox();
+    const venueBox = await venue.boundingBox();
 
     expect(titleBox).not.toBeNull();
     expect(venueBox).not.toBeNull();
