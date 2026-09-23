@@ -11,14 +11,14 @@ export function AboutBand() {
         id="sobre"
         aria-labelledby="sobre-titulo"
         data-surface="dark"
-        className="scroll-mt-28 flex flex-col items-start gap-8 rounded-md bg-band px-6 py-10 text-band-foreground sm:px-12 md:flex-row md:items-center md:gap-12 md:px-[72px] md:py-16"
+        className="scroll-mt-28 flex flex-col items-start gap-8 rounded-md bg-band px-6 py-10 text-band-foreground sm:px-12 md:gap-10 md:px-12 md:py-14 lg:flex-row lg:items-center lg:gap-12 lg:px-[72px] lg:py-16"
       >
         <Image
           src="/brand/logo.png"
           alt=""
           width={132}
           height={132}
-          className="size-24 shrink-0 rounded-full object-cover md:size-[132px]"
+          className="size-24 shrink-0 rounded-full object-cover lg:size-[132px]"
         />
 
         <div className="flex-1">
@@ -32,7 +32,7 @@ export function AboutBand() {
           href={SITE.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-band-accent px-7 py-3 text-xs font-medium uppercase tracking-[0.18em] text-band-foreground transition-colors hover:bg-band-accent hover:text-band"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-band-accent! px-7 py-3 text-xs font-medium uppercase tracking-[0.18em] text-band-foreground transition-colors hover:bg-band-accent hover:text-band"
         >
           Seguir en Instagram
           <span className="sr-only"> (abre en una pestaña nueva)</span>

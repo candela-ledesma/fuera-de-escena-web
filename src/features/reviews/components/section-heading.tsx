@@ -14,7 +14,7 @@ export function SectionHeading({
   linkLabel: string;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4 border-t border-foreground pt-6">
+    <div className="flex items-end justify-between gap-4 border-t border-foreground! pt-6">
       <h2 id={id} className="font-display text-[1.75rem] font-medium leading-tight text-foreground sm:text-[2rem]">
         {title}
       </h2>
