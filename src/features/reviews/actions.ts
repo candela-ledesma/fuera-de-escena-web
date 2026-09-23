@@ -9,7 +9,15 @@ import { auth } from "@/lib/auth/config";
 import { requireAuthorSession } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE_BYTES, MAX_REVIEW_IMAGES, draftFormSchema, reviewFormSchema, slugify } from "./schema";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE_BYTES,
+  MAX_REVIEW_IMAGES,
+  draftFormSchema,
+  getPublishError,
+  reviewFormSchema,
+  slugify,
+} from "./schema";
 import { validateAndNormalizeContent } from "./content-validation";
 import {
   deleteReview,
@@ -61,6 +69,7 @@ async function resolveTagIds(tagNames: string[]) {
 function parseForm(formData: FormData) {
   return reviewFormSchema.safeParse({
     title: formData.get("title"),
+    summary: formData.get("summary") || undefined,
     venue: formData.get("venue") || undefined,
     eventDate: formData.get("eventDate") || undefined,
     categoryId: formData.get("categoryId"),
@@ -151,7 +160,7 @@ export async function createReview(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+  const { title, summary, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
@@ -174,6 +183,7 @@ export async function createReview(
         authorId,
         kind: "critica",
         title,
+        summary: summary || null,
         venue: venue ?? null,
         eventDate: eventDate ?? null,
         categoryId,
@@ -217,7 +227,12 @@ export async function updateReviewAction(
     return { error: "La crítica no existe." };
   }
 
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+  const { title, summary, venue, eventDate, categoryId, rating, contentJson, tags, coverIndex } = parsed.data;
+
+  if (existing.status === "published") {
+    const publishError = getPublishError("critica", { summary, eventDate });
+    if (publishError) return { error: publishError };
+  }
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
@@ -259,6 +274,7 @@ export async function updateReviewAction(
       existing.id,
       {
         title,
+        summary: summary || null,
         venue: venue ?? null,
         eventDate: eventDate ?? null,
         categoryId,
@@ -303,12 +319,17 @@ export async function deleteReviewAction(reviewSlug: string): Promise<void> {
 export async function setReviewStatusAction(
   reviewSlug: string,
   status: "draft" | "published",
-): Promise<void> {
+): Promise<{ error?: string }> {
   const { authorId } = await requireAuthorSession();
   const existing = await getReviewBySlugForAuthor(reviewSlug, authorId, "critica");
 
   if (!existing) {
-    return;
+    return { error: "La crítica no existe." };
+  }
+
+  if (status === "published") {
+    const publishError = getPublishError("critica", existing);
+    if (publishError) return { error: publishError };
   }
 
   await updateReview(existing.id, {
@@ -319,6 +340,8 @@ export async function setReviewStatusAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/critica/${reviewSlug}`);
+
+  return {};
 }
 
 export type SaveDraftResult = { id: string; slug: string; savedAt: string } | { error: string };
@@ -334,6 +357,7 @@ export async function saveDraftAction(
 ): Promise<SaveDraftResult> {
   const parsed = draftFormSchema.safeParse({
     title: formData.get("title") || undefined,
+    summary: formData.get("summary") || undefined,
     venue: formData.get("venue") || undefined,
     eventDate: formData.get("eventDate") || undefined,
     categoryId: formData.get("categoryId") || undefined,
@@ -347,7 +371,7 @@ export async function saveDraftAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, venue, eventDate, categoryId, rating, contentJson, tags } = parsed.data;
+  const { title, summary, venue, eventDate, categoryId, rating, contentJson, tags } = parsed.data;
 
   let body = "";
   let normalizedContentJson: unknown = null;
@@ -365,6 +389,7 @@ export async function saveDraftAction(
 
   const fields = {
     title,
+    summary: summary || null,
     venue: venue ?? null,
     eventDate: eventDate ?? null,
     categoryId: categoryId ?? null,
@@ -378,6 +403,12 @@ export async function saveDraftAction(
 
     if (!existing) {
       return { error: "El borrador no existe." };
+    }
+
+    // El autosave también corre sobre críticas publicadas: no puede dejarlas incompletas.
+    if (existing.status === "published") {
+      const publishError = getPublishError("critica", fields);
+      if (publishError) return { error: publishError };
     }
 
     const updated = await updateReviewDraftFields(reviewId, authorId, "critica", fields);
@@ -399,6 +430,7 @@ export async function saveDraftAction(
     authorId,
     kind: "critica",
     title: title || "Sin título",
+    summary: fields.summary,
     venue: fields.venue,
     eventDate: fields.eventDate,
     categoryId: fields.categoryId,

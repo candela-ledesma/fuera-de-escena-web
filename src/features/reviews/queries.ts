@@ -247,6 +247,7 @@ export async function updateReviewDraftFields(
   kind: ReviewKind,
   fields: {
     title: string;
+    summary?: string | null;
     venue?: string | null;
     eventDate?: string | null;
     categoryId?: string | null;
