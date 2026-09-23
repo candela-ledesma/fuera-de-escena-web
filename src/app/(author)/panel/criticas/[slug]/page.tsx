@@ -54,6 +54,7 @@ export default async function EditReviewPage({
         reviewSlug={review.slug}
         defaults={{
           title: review.title,
+          summary: review.summary ?? "",
           venue: review.venue ?? "",
           eventDate: review.eventDate ?? "",
           categoryId: review.categoryId ?? "",
