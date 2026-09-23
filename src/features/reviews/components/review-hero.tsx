@@ -45,10 +45,11 @@ export function ReviewHero({ review }: { review: PublishedReviewItem }) {
 
         <Link
           href={href}
+          // Nombre explícito: Chrome mete un espacio entre el texto y un <span> hijo.
+          aria-label={`Leer crítica: ${review.title}`}
           className="mt-8 inline-flex min-h-11 items-center border-b-[1.5px] border-foreground! text-xs font-medium uppercase tracking-[0.18em] text-foreground hover:border-primary! hover:text-primary"
         >
           Leer crítica <span aria-hidden="true">&nbsp;→</span>
-          <span className="sr-only">: {review.title}</span>
         </Link>
       </div>
     </article>

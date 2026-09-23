@@ -55,7 +55,14 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
    BLOB_READ_WRITE_TOKEN=...
    TEST_AUTHOR_EMAIL=...
    TEST_AUTHOR_PASSWORD=...
+   E2E_DB_HOST=ep-...              # id del endpoint del branch `test`
    ```
+
+   **La suite borra todo el contenido de la base `test` al arrancar**
+   (`e2e/global-setup.ts`) y cada test crea sus propios datos. Si el host de
+   `DATABASE_URL` no coincide con `E2E_DB_HOST`, aborta sin tocar nada. Los
+   estados globales de la home (`e2e/home-states.spec.ts`) corren en un
+   project aparte, después del resto.
 
 3. Ejecutar migraciones y semillas:
 
