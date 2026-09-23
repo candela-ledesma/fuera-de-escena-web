@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
 import { auth } from "@/lib/auth/config";
-import { Button } from "@/components/ui/button";
 import { CommentForm } from "@/features/comments/components/comment-form";
 import { CommentList } from "@/features/comments/components/comment-list";
 import { getApprovedCommentsByReviewId } from "@/features/comments/queries";
@@ -68,19 +65,8 @@ export default async function ReviewDetailPage({
   const activeReactionType = anonId ? await getAnonReactionByReviewId(review.id, anonId) : null;
 
   return (
-    <div className="min-h-dvh bg-background">
+    <>
       <ViewTracker reviewId={review.id} />
-
-      <header className="sticky top-0 z-50 border-b border-border bg-card">
-        <div className="mx-auto flex h-[60px] max-w-[720px] items-center px-6">
-          <Button asChild variant="ghost" size="sm" className="-ml-3 px-2 text-muted hover:text-foreground sm:px-3">
-            <Link href="/" aria-label="Volver a inicio">
-              <ArrowLeft />
-              <span className="hidden sm:inline">Volver a inicio</span>
-            </Link>
-          </Button>
-        </div>
-      </header>
 
       <main className="mx-auto max-w-[720px] px-6 py-10">
         {review.categoryName ? (
@@ -154,10 +140,6 @@ export default async function ReviewDetailPage({
           </div>
         </section>
       </main>
-
-      <footer className="mt-12 flex flex-col items-center gap-2 border-t border-border px-8 py-8 text-center">
-        <div className="text-xs tracking-[0.12em] text-muted">FUERA DE ESCENA BB · @FUERADEESCENABB</div>
-      </footer>
-    </div>
+    </>
   );
 }
