@@ -14,17 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   Select,
   SelectContent,
@@ -209,8 +199,11 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
               {review.status === "published" ? "Pasar a borrador" : "Publicar"}
             </DropdownMenuItem>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
+            <ConfirmDialog
+              title="¿Borrar esta crítica?"
+              description={`Esta acción no se puede deshacer. Se va a borrar “${review.title}” y sus imágenes de forma permanente.`}
+              onConfirm={handleDelete}
+              trigger={
                 <DropdownMenuItem
                   variant="destructive"
                   disabled={isPending}
@@ -218,21 +211,8 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
                 >
                   Borrar
                 </DropdownMenuItem>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>¿Borrar esta crítica?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se va a borrar &ldquo;{review.title}&rdquo; y sus
-                    imágenes de forma permanente.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Borrar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              }
+            />
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
