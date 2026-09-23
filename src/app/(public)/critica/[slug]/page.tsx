@@ -20,6 +20,7 @@ import {
 } from "@/features/reviews/queries";
 import { ViewTracker } from "@/features/reviews/components/view-tracker";
 import { ReviewContent } from "@/components/review-content";
+import { formatEventDate } from "@/lib/utils";
 
 export const revalidate = 0;
 
@@ -93,7 +94,7 @@ export default async function ReviewDetailPage({
         </h1>
 
         <p className="mt-2 text-sm italic text-muted">
-          {[review.venue, review.eventDate].filter(Boolean).join(" · ")}
+          {[review.venue, formatEventDate(review.eventDate)].filter(Boolean).join(" · ")}
         </p>
 
         {review.rating ? (
