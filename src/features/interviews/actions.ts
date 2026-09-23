@@ -183,9 +183,9 @@ export async function createInterview(
     }
   });
 
-  revalidatePath("/panel/entrevistas");
+  revalidatePath("/panel");
   revalidatePath("/");
-  redirect("/panel/entrevistas?saved=created");
+  redirect("/panel?tab=entrevistas&saved=created");
 }
 
 export async function updateInterviewAction(
@@ -262,10 +262,10 @@ export async function updateInterviewAction(
     await Promise.all(imagesToDelete.map((storagePath) => del(storagePath)));
   }
 
-  revalidatePath("/panel/entrevistas");
+  revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/entrevista/${slug}`);
-  redirect("/panel/entrevistas?saved=updated");
+  redirect("/panel?tab=entrevistas&saved=updated");
 }
 
 export async function deleteInterviewAction(interviewSlug: string): Promise<void> {
@@ -280,7 +280,7 @@ export async function deleteInterviewAction(interviewSlug: string): Promise<void
   await Promise.all(images.map((image) => del(image.storagePath)));
 
   await deleteReview(existing.id);
-  revalidatePath("/panel/entrevistas");
+  revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/entrevista/${interviewSlug}`);
 }
@@ -301,7 +301,7 @@ export async function setInterviewStatusAction(
     publishedAt: status === "published" ? new Date() : null,
   });
 
-  revalidatePath("/panel/entrevistas");
+  revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/entrevista/${interviewSlug}`);
 }

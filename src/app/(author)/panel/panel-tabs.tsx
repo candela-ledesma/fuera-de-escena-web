@@ -1,34 +1,31 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-
 import { cn } from "@/lib/utils";
 
-const TABS = [
-  { href: "/panel", label: "Críticas teatrales" },
-  { href: "/panel/entrevistas", label: "Entrevistas" },
+export type PanelTab = "criticas" | "entrevistas";
+
+const TABS: { value: PanelTab; label: string }[] = [
+  { value: "criticas", label: "Críticas teatrales" },
+  { value: "entrevistas", label: "Entrevistas" },
 ];
 
-export function PanelTabs() {
-  const pathname = usePathname();
-
-  const isListingRoute = pathname === "/panel" || pathname === "/panel/entrevistas";
-
-  if (!isListingRoute) {
-    return null;
-  }
-
+export function PanelTabs({
+  active,
+  onChange,
+}: {
+  active: PanelTab;
+  onChange: (tab: PanelTab) => void;
+}) {
   return (
     <div className="flex items-center gap-1 border-b border-border px-3 sm:px-6">
       {TABS.map((tab) => {
-        const isActive = tab.href === "/panel" ? pathname === "/panel" : pathname.startsWith(tab.href);
+        const isActive = tab.value === active;
 
         return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            prefetch
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => onChange(tab.value)}
             className={cn(
               "border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               isActive
@@ -37,7 +34,7 @@ export function PanelTabs() {
             )}
           >
             {tab.label}
-          </Link>
+          </button>
         );
       })}
     </div>
