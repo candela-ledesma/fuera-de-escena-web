@@ -112,6 +112,8 @@ test.describe("Editor TipTap del panel", () => {
     await page.getByLabel("Categoría").click();
     await page.getByRole("option").first().click();
     await page.getByRole("radio", { name: "3 estrellas" }).click();
+    await page.getByLabel("Bajada").fill("Bajada de prueba.");
+    await page.locator("#eventDate").fill("2026-06-15");
 
     await Promise.all([
       page.waitForURL(/\/panel\?saved=created$/, { timeout: 15_000 }),
@@ -251,6 +253,8 @@ test.describe("Editor TipTap del panel", () => {
         },
         slug: `e2e-tiptap-migrada-${Date.now()}`,
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
