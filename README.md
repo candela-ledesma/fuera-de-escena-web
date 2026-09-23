@@ -42,7 +42,17 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
    AUTH_SECRET=...
    BLOB_READ_WRITE_TOKEN=...
 
-   # Solo para e2e
+   ```
+
+   `DATABASE_URL` apunta al branch `dev` de Neon, nunca a producción.
+
+   Para los E2E, crear además `.env.test` con las mismas variables apuntando
+   al branch `test` de Neon, más la autora de prueba:
+
+   ```bash
+   DATABASE_URL=postgresql://...   # branch `test`
+   AUTH_SECRET=...
+   BLOB_READ_WRITE_TOKEN=...
    TEST_AUTHOR_EMAIL=...
    TEST_AUTHOR_PASSWORD=...
    ```
@@ -67,7 +77,7 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
 - `npm run build`: build de producción.
 - `npm run start`: correr build en producción.
 - `npm run lint`: lint con ESLint.
-- `npm run test:e2e`: suite E2E con Playwright.
+- `npm run test:e2e`: suite E2E con Playwright contra `.env.test`, en el puerto 3100.
 - `npm run db:generate`: generar migraciones con Drizzle.
 - `npm run db:migrate`: aplicar migraciones.
 - `npm run db:studio`: abrir Drizzle Studio.
