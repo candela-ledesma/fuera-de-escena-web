@@ -138,13 +138,13 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("la crítica publicada aparece en la vista pública con la portada elegida", async () => {
-      await page.goto("/");
-      const homeCard = page.getByRole("link", { name: new RegExp(REVIEW.title) });
-      await expect(homeCard).toBeVisible();
-      await expect(homeCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
-      await expect(homeCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
+      await page.goto("/critica");
+      const listCard = page.getByTestId("review-card").filter({ hasText: REVIEW.title });
+      await expect(listCard).toBeVisible();
+      await expect(listCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
+      await expect(listCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
 
-      await homeCard.click();
+      await listCard.getByRole("link", { name: REVIEW.title }).click();
       await expect(page).toHaveURL(/\/critica\/.+/);
       await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
       await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
@@ -290,9 +290,10 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("la crítica despublicada ya no aparece en la vista pública", async () => {
-      await page.goto("/");
-      await page.reload();
-      await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).not.toBeVisible();
+      for (const path of ["/critica", "/"]) {
+        await page.goto(path);
+        await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).not.toBeVisible();
+      }
       await page.goto("/panel");
     });
 
