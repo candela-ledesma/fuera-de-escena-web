@@ -63,6 +63,7 @@ export function InterviewForm({
   const formRef = useRef<HTMLFormElement>(null);
   const editorRef = useRef<TiptapEditorHandle>(null);
   const draftIdRef = useRef<string | null>(interviewId ?? null);
+  const isSubmittingRef = useRef(false);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
   const [plainText, setPlainText] = useState("");
@@ -109,6 +110,8 @@ export function InterviewForm({
     if (!hasContent) return;
 
     const timer = setTimeout(() => {
+      if (isSubmittingRef.current) return;
+
       setAutosaveState("saving");
       const draftData = new FormData();
       draftData.set("title", title ?? "");
@@ -117,6 +120,8 @@ export function InterviewForm({
 
       saveInterviewDraftAction(draftIdRef.current, draftData)
         .then((result) => {
+          if (isSubmittingRef.current) return;
+
           if ("error" in result) {
             setAutosaveState("error");
             return;
@@ -130,7 +135,9 @@ export function InterviewForm({
             router.replace(`/panel/entrevistas/${result.slug}`);
           }
         })
-        .catch(() => setAutosaveState("error"));
+        .catch(() => {
+          if (!isSubmittingRef.current) setAutosaveState("error");
+        });
     }, AUTOSAVE_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
@@ -139,11 +146,13 @@ export function InterviewForm({
 
   function onValid() {
     if (!formRef.current) return;
+    isSubmittingRef.current = true;
     const formData = new FormData(formRef.current);
     startTransition(async () => {
       try {
         await formAction(formData);
       } catch {
+        isSubmittingRef.current = false;
         toast.error(
           "No se pudo guardar la entrevista. Si subiste imágenes muy pesadas, probá con archivos más livianos.",
         );
