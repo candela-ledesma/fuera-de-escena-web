@@ -104,7 +104,7 @@ test.describe("Validación del uploader de imágenes", () => {
 });
 
 test.describe("Persistencia de imágenes al editar una crítica", () => {
-  const EDIT_REVIEW_TITLE = "Crítica de prueba para borrado de imagen al editar";
+  const EDIT_REVIEW_TITLE = "E2E TEST — Crítica de prueba para borrado de imagen al editar";
 
   async function deleteLeftoverTestReview() {
     await db.delete(reviews).where(eq(reviews.title, EDIT_REVIEW_TITLE));
