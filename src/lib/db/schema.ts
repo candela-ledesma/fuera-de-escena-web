@@ -43,6 +43,8 @@ export const reviews = pgTable("reviews", {
     .references(() => authors.id),
   categoryId: uuid("category_id").references(() => categories.id),
   title: text("title").notNull(),
+  // Bajada: opcional en borradores, obligatoria al publicar (ver getPublishErrors).
+  summary: text("summary"),
   venue: text("venue"),
   eventDate: date("event_date"),
   rating: smallint("rating"),

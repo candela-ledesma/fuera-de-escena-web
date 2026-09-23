@@ -3,8 +3,15 @@ import { z } from "zod";
 export const MAX_REVIEW_IMAGES = 2;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+export const MAX_SUMMARY_LENGTH = 200;
 
 export const reviewKindSchema = z.enum(["critica", "entrevista"]).default("critica");
+
+const summarySchema = z
+  .string()
+  .trim()
+  .max(MAX_SUMMARY_LENGTH, `La bajada no puede superar los ${MAX_SUMMARY_LENGTH} caracteres.`)
+  .optional();
 
 export const reviewContentSchema = z.object({
   type: z.literal("doc"),
@@ -13,6 +20,7 @@ export const reviewContentSchema = z.object({
 
 export const reviewFormSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio.").max(200),
+  summary: summarySchema,
   venue: z.string().trim().max(200).optional(),
   eventDate: z.string().trim().optional(),
   categoryId: z.string().trim().min(1, "Elegí una categoría."),
@@ -51,6 +59,7 @@ export const reviewFormSchema = z.object({
 
 export const draftFormSchema = z.object({
   title: z.string().trim().max(200).optional().default(""),
+  summary: summarySchema,
   venue: z.string().trim().max(200).optional(),
   eventDate: z.string().trim().optional(),
   categoryId: z.string().trim().optional(),
@@ -84,6 +93,7 @@ export const draftFormSchema = z.object({
 
 export const interviewFormSchema = z.object({
   title: z.string().trim().min(1, "El título es obligatorio.").max(200),
+  summary: summarySchema,
   contentJson: z
     .string()
     .trim()
@@ -118,6 +128,7 @@ export const interviewFormSchema = z.object({
 
 export const interviewDraftFormSchema = z.object({
   title: z.string().trim().max(200).optional().default(""),
+  summary: summarySchema,
   contentJson: z
     .string()
     .trim()
@@ -144,6 +155,27 @@ export const interviewDraftFormSchema = z.object({
         .filter((tag) => tag.length > 0),
     ),
 });
+
+type ReviewKind = z.infer<typeof reviewKindSchema>;
+
+/**
+ * Requisitos para que una crítica/entrevista esté publicada. Los borradores
+ * pueden estar incompletos; esto se chequea al publicar y al guardar una ya
+ * publicada. Devuelve un mensaje que dice qué falta, o null si está completa.
+ */
+export function getPublishError(
+  kind: ReviewKind,
+  fields: { summary: string | null | undefined; eventDate: string | null | undefined },
+): string | null {
+  const missing: string[] = [];
+
+  if (!fields.summary?.trim()) missing.push("la bajada");
+  if (kind === "critica" && !fields.eventDate) missing.push("la fecha de la función");
+
+  if (missing.length === 0) return null;
+
+  return `Para publicar falta completar ${missing.join(" y ")}.`;
+}
 
 export function slugify(value: string): string {
   return value

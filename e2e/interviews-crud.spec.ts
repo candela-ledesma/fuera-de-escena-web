@@ -17,6 +17,7 @@ if (!TEST_EMAIL || !TEST_PASSWORD) {
 
 const INTERVIEW = {
   title: "E2E TEST — Entrevista a Sofía Caporale sobre danza y teatro independiente",
+  summary: "Sofía Caporale cuenta cómo la danza se volvió el eje de su trabajo en el teatro independiente bahiense.",
   imageAlt: "Retrato de la entrevistada en el ensayo",
   imageAlt2: "La entrevistada durante la función",
   body: `¿Cómo empezó tu relación con la danza dentro del teatro independiente de Bahía Blanca?
@@ -81,6 +82,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/panel\/entrevistas\/nueva$/);
 
       await page.getByLabel("Título de la entrevista").fill(INTERVIEW.title);
+      await page.getByLabel("Bajada").fill(INTERVIEW.summary);
 
       await page.getByRole("textbox", { name: "Texto de la entrevista" }).click();
       await page.keyboard.insertText(INTERVIEW.body);
@@ -261,6 +263,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
         body: "Cuerpo de entrevista de prueba.",
         contentJson: plainTextDoc("Cuerpo de entrevista de prueba."),
         slug: "entrevista-regresion-separacion-listados",
+        summary: "Bajada de prueba.",
         status: "published",
         publishedAt: new Date(),
       })
@@ -276,6 +279,8 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
         contentJson: plainTextDoc("Cuerpo de crítica de prueba."),
         slug: "critica-regresion-separacion-listados",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })

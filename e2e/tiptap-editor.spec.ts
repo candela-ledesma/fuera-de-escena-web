@@ -112,6 +112,8 @@ test.describe("Editor TipTap del panel", () => {
     await page.getByLabel("Categoría").click();
     await page.getByRole("option").first().click();
     await page.getByRole("radio", { name: "3 estrellas" }).click();
+    await page.getByLabel("Bajada").fill("Bajada de prueba.");
+    await page.locator("#eventDate").fill("2026-06-15");
 
     await Promise.all([
       page.waitForURL(/\/panel\?saved=created$/, { timeout: 15_000 }),
@@ -251,6 +253,8 @@ test.describe("Editor TipTap del panel", () => {
         },
         slug: `e2e-tiptap-migrada-${Date.now()}`,
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
@@ -279,8 +283,15 @@ test.describe("Layout de dos columnas del formulario de crítica", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/panel/criticas/nueva");
 
-    const titleBox = await page.getByLabel("Título de la obra").boundingBox();
-    const venueBox = await page.getByLabel("Teatro / lugar").boundingBox();
+    // boundingBox() no espera: durante el streaming (loading.tsx) el form
+    // está montado pero oculto y devuelve null. Esperamos a que sea visible.
+    const title = page.getByLabel("Título de la obra");
+    const venue = page.getByLabel("Teatro / lugar");
+    await expect(title).toBeVisible();
+    await expect(venue).toBeVisible();
+
+    const titleBox = await title.boundingBox();
+    const venueBox = await venue.boundingBox();
 
     expect(titleBox).not.toBeNull();
     expect(venueBox).not.toBeNull();
@@ -294,8 +305,15 @@ test.describe("Layout de dos columnas del formulario de crítica", () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/panel/criticas/nueva");
 
-    const titleBox = await page.getByLabel("Título de la obra").boundingBox();
-    const venueBox = await page.getByLabel("Teatro / lugar").boundingBox();
+    // boundingBox() no espera: durante el streaming (loading.tsx) el form
+    // está montado pero oculto y devuelve null. Esperamos a que sea visible.
+    const title = page.getByLabel("Título de la obra");
+    const venue = page.getByLabel("Teatro / lugar");
+    await expect(title).toBeVisible();
+    await expect(venue).toBeVisible();
+
+    const titleBox = await title.boundingBox();
+    const venueBox = await venue.boundingBox();
 
     expect(titleBox).not.toBeNull();
     expect(venueBox).not.toBeNull();

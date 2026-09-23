@@ -114,7 +114,13 @@ function InterviewRow({ interview }: { interview: InterviewListItem }) {
   function handleTogglePublish() {
     startTransition(async () => {
       const nextStatus = interview.status === "published" ? "draft" : "published";
-      await setInterviewStatusAction(interview.slug, nextStatus);
+      const result = await setInterviewStatusAction(interview.slug, nextStatus);
+
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
       toast.success(nextStatus === "published" ? "Entrevista publicada." : "Entrevista pasada a borrador.");
     });
   }

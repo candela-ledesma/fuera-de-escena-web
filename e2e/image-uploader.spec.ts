@@ -36,6 +36,10 @@ test.describe("Validación del uploader de imágenes", () => {
     await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
 
     await page.goto("/panel/criticas/nueva");
+    // setInputFiles antes de la hidratación se pierde (no hay onChange todavía).
+    // El editor se monta solo en el cliente, en el mismo árbol que el uploader:
+    // si es visible, el formulario ya está hidratado.
+    await expect(page.getByRole("textbox", { name: "Texto de la crítica" })).toBeVisible();
   });
 
   test("rechaza un tipo de archivo no permitido sin romper el formulario", async ({ page }) => {

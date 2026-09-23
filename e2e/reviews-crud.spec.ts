@@ -19,6 +19,7 @@ const REVIEW = {
   title: "E2E TEST — Los hijos de la finada Mircheva, segunda parte",
   venue: "La Macanuda",
   eventDate: "2026-06-15",
+  summary: "Una precuela que muda el velorio a un cumpleaños y hace estallar la tragedia en medio de la fiesta.",
   rating: "5",
   imageAlt: "Escena de la obra con los actores en la fiesta de cumpleaños",
   imageAlt2: "Primer plano del elenco durante la escena final",
@@ -87,6 +88,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
 
       await page.getByLabel("Título de la obra").fill(REVIEW.title);
+      await page.getByLabel("Bajada").fill(REVIEW.summary);
       await page.getByLabel("Teatro / lugar").fill(REVIEW.venue);
       await page.locator("#eventDate").fill(REVIEW.eventDate);
 
@@ -349,6 +351,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-moderacion-anonima",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
@@ -386,6 +390,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-reacciones-anonimas",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
@@ -442,6 +448,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-conteo-vistas",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
