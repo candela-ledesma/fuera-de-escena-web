@@ -16,6 +16,7 @@ import { ImageUploader, type ExistingImage } from "@/features/reviews/components
 import { TagsInput } from "@/features/reviews/components/tags-input";
 import { TiptapEditor, type TiptapEditorHandle } from "@/features/reviews/components/tiptap-editor";
 import { AutoResizeTitle } from "@/features/reviews/components/auto-resize-title";
+import { SummaryField } from "@/features/reviews/components/summary-field";
 import { interviewFormSchema } from "@/features/reviews/schema";
 
 const AUTOSAVE_DEBOUNCE_MS = 4000;
@@ -24,6 +25,7 @@ const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", content: [] }] }
 
 type InterviewDefaults = {
   title: string;
+  summary: string;
   contentJson: unknown;
   tags: string;
   images: ExistingImage[];
@@ -31,6 +33,7 @@ type InterviewDefaults = {
 
 const emptyDefaults: InterviewDefaults = {
   title: "",
+  summary: "",
   contentJson: EMPTY_DOC,
   tags: "",
   images: [],
@@ -38,6 +41,7 @@ const emptyDefaults: InterviewDefaults = {
 
 type FormValues = {
   title: string;
+  summary?: string;
   contentJson: string;
   tags?: string;
 };
@@ -65,6 +69,7 @@ export function InterviewForm({
   const draftIdRef = useRef<string | null>(interviewId ?? null);
   const isSubmittingRef = useRef(false);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
   const [plainText, setPlainText] = useState("");
 
@@ -78,6 +83,7 @@ export function InterviewForm({
     resolver: zodResolver(interviewFormSchema) as unknown as Resolver<FormValues>,
     defaultValues: {
       title: defaults.title,
+      summary: defaults.summary,
       contentJson: JSON.stringify(defaults.contentJson ?? EMPTY_DOC),
       tags: defaults.tags,
     },
@@ -87,6 +93,7 @@ export function InterviewForm({
   const isPublished = status === "published";
   const submitButtonLabel = isPublished ? "Guardar cambios (en vivo)" : submitLabel;
   const title = watch("title");
+  const summary = watch("summary");
   const tags = watch("tags");
   const wordCount = useMemo(() => {
     const trimmed = plainText.trim();
@@ -115,6 +122,7 @@ export function InterviewForm({
       setAutosaveState("saving");
       const draftData = new FormData();
       draftData.set("title", title ?? "");
+      draftData.set("summary", summary ?? "");
       draftData.set("contentJson", JSON.stringify(contentJson));
       draftData.set("tags", tags ?? "");
 
@@ -123,12 +131,16 @@ export function InterviewForm({
           if (isSubmittingRef.current) return;
 
           if ("error" in result) {
+            // En una publicada, el error suele ser que falta la bajada:
+            // mostramos el motivo en vez del genérico.
+            setAutosaveError(isPublished ? result.error : null);
             setAutosaveState("error");
             return;
           }
 
           const isFirstSave = draftIdRef.current === null;
           draftIdRef.current = result.id;
+          setAutosaveError(null);
           setAutosaveState("saved");
 
           if (isFirstSave && !interviewId) {
@@ -142,7 +154,7 @@ export function InterviewForm({
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, contentJson, plainText, tags]);
+  }, [title, summary, contentJson, plainText, tags]);
 
   function onValid() {
     if (!formRef.current) return;
@@ -200,6 +212,13 @@ export function InterviewForm({
             ) : null}
           </div>
 
+          <SummaryField
+            className="mt-4 px-6 sm:px-10"
+            length={summary?.length ?? 0}
+            error={errors.summary?.message}
+            {...register("summary")}
+          />
+
           <div className="mt-6">
             <TiptapEditor
               ref={editorRef}
@@ -240,7 +259,7 @@ export function InterviewForm({
           <span className="text-sm text-muted-foreground">
             {autosaveState === "saving" ? "Guardando…" : null}
             {autosaveState === "saved" ? "Guardado hace un momento" : null}
-            {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
+            {autosaveState === "error" ? (autosaveError ?? "No se pudo guardar el borrador. Reintentando…") : null}
           </span>
           <Button type="submit" disabled={isPending} className="justify-self-end">
             {isPending ? "Guardando…" : submitButtonLabel}

@@ -27,6 +27,7 @@ import {
   ALLOWED_IMAGE_TYPES,
   MAX_IMAGE_SIZE_BYTES,
   MAX_REVIEW_IMAGES,
+  getPublishError,
   interviewDraftFormSchema,
   interviewFormSchema,
   slugify,
@@ -64,6 +65,7 @@ async function resolveTagIds(tagNames: string[]) {
 function parseForm(formData: FormData) {
   return interviewFormSchema.safeParse({
     title: formData.get("title"),
+    summary: formData.get("summary") || undefined,
     contentJson: formData.get("contentJson"),
     tags: formData.get("tags") || undefined,
     coverIndex: formData.get("coverIndex") || undefined,
@@ -140,7 +142,7 @@ export async function createInterview(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, contentJson, tags, coverIndex } = parsed.data;
+  const { title, summary, contentJson, tags, coverIndex } = parsed.data;
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
@@ -163,6 +165,7 @@ export async function createInterview(
         authorId,
         kind: "entrevista",
         title,
+        summary: summary || null,
         venue: null,
         eventDate: null,
         categoryId: null,
@@ -206,7 +209,12 @@ export async function updateInterviewAction(
     return { error: "La entrevista no existe." };
   }
 
-  const { title, contentJson, tags, coverIndex } = parsed.data;
+  const { title, summary, contentJson, tags, coverIndex } = parsed.data;
+
+  if (existing.status === "published") {
+    const publishError = getPublishError("entrevista", { summary, eventDate: null });
+    if (publishError) return { error: publishError };
+  }
 
   const validatedContent = validateAndNormalizeContent(contentJson);
 
@@ -248,6 +256,7 @@ export async function updateInterviewAction(
       existing.id,
       {
         title,
+        summary: summary || null,
         body: validatedContent.plainText,
         contentJson: validatedContent.doc,
         slug,
@@ -288,12 +297,17 @@ export async function deleteInterviewAction(interviewSlug: string): Promise<void
 export async function setInterviewStatusAction(
   interviewSlug: string,
   status: "draft" | "published",
-): Promise<void> {
+): Promise<{ error?: string }> {
   const { authorId } = await requireAuthorSession();
   const existing = await getReviewBySlugForAuthor(interviewSlug, authorId, "entrevista");
 
   if (!existing) {
-    return;
+    return { error: "La entrevista no existe." };
+  }
+
+  if (status === "published") {
+    const publishError = getPublishError("entrevista", existing);
+    if (publishError) return { error: publishError };
   }
 
   await updateReview(existing.id, {
@@ -304,6 +318,8 @@ export async function setInterviewStatusAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/entrevista/${interviewSlug}`);
+
+  return {};
 }
 
 export type SaveInterviewDraftResult = { id: string; slug: string; savedAt: string } | { error: string };
@@ -318,6 +334,7 @@ export async function saveInterviewDraftAction(
 ): Promise<SaveInterviewDraftResult> {
   const parsed = interviewDraftFormSchema.safeParse({
     title: formData.get("title") || undefined,
+    summary: formData.get("summary") || undefined,
     contentJson: formData.get("contentJson") || undefined,
     tags: formData.get("tags") || undefined,
   });
@@ -327,7 +344,7 @@ export async function saveInterviewDraftAction(
   }
 
   const { authorId } = await requireAuthorSession();
-  const { title, contentJson, tags } = parsed.data;
+  const { title, summary, contentJson, tags } = parsed.data;
 
   let body = "";
   let normalizedContentJson: unknown = null;
@@ -350,8 +367,15 @@ export async function saveInterviewDraftAction(
       return { error: "El borrador no existe." };
     }
 
+    // El autosave también corre sobre entrevistas publicadas: no puede dejarlas incompletas.
+    if (existing.status === "published") {
+      const publishError = getPublishError("entrevista", { summary, eventDate: null });
+      if (publishError) return { error: publishError };
+    }
+
     const updated = await updateReviewDraftFields(interviewId, authorId, "entrevista", {
       title,
+      summary: summary || null,
       body,
       contentJson: normalizedContentJson,
     });
@@ -373,6 +397,7 @@ export async function saveInterviewDraftAction(
     authorId,
     kind: "entrevista",
     title: title || "Sin título",
+    summary: summary || null,
     venue: null,
     eventDate: null,
     categoryId: null,

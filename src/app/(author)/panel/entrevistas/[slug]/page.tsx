@@ -49,6 +49,7 @@ export default async function EditInterviewPage({
         interviewSlug={interview.slug}
         defaults={{
           title: interview.title,
+          summary: interview.summary ?? "",
           contentJson: interview.contentJson ?? { type: "doc", content: [{ type: "paragraph", content: [] }] },
           tags: tagNames.join(", "),
           images: images.map((image) => ({

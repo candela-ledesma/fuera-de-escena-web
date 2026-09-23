@@ -117,7 +117,13 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
   function handleTogglePublish() {
     startTransition(async () => {
       const nextStatus = review.status === "published" ? "draft" : "published";
-      await setReviewStatusAction(review.slug, nextStatus);
+      const result = await setReviewStatusAction(review.slug, nextStatus);
+
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
       toast.success(nextStatus === "published" ? "Crítica publicada." : "Crítica pasada a borrador.");
     });
   }

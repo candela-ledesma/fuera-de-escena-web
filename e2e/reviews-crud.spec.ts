@@ -19,6 +19,7 @@ const REVIEW = {
   title: "E2E TEST — Los hijos de la finada Mircheva, segunda parte",
   venue: "La Macanuda",
   eventDate: "2026-06-15",
+  summary: "Una precuela que muda el velorio a un cumpleaños y hace estallar la tragedia en medio de la fiesta.",
   rating: "5",
   imageAlt: "Escena de la obra con los actores en la fiesta de cumpleaños",
   imageAlt2: "Primer plano del elenco durante la escena final",
@@ -87,6 +88,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/panel\/criticas\/nueva$/);
 
       await page.getByLabel("Título de la obra").fill(REVIEW.title);
+      await page.getByLabel("Bajada").fill(REVIEW.summary);
       await page.getByLabel("Teatro / lugar").fill(REVIEW.venue);
       await page.locator("#eventDate").fill(REVIEW.eventDate);
 
@@ -136,13 +138,13 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("la crítica publicada aparece en la vista pública con la portada elegida", async () => {
-      await page.goto("/");
-      const homeCard = page.getByRole("link", { name: new RegExp(REVIEW.title) });
-      await expect(homeCard).toBeVisible();
-      await expect(homeCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
-      await expect(homeCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
+      await page.goto("/critica");
+      const listCard = page.getByTestId("review-card").filter({ hasText: REVIEW.title });
+      await expect(listCard).toBeVisible();
+      await expect(listCard.getByAltText(REVIEW.imageAlt2)).toBeVisible();
+      await expect(listCard.getByAltText(REVIEW.imageAlt)).not.toBeVisible();
 
-      await homeCard.click();
+      await listCard.getByRole("link", { name: REVIEW.title }).click();
       await expect(page).toHaveURL(/\/critica\/.+/);
       await expect(page.getByRole("heading", { name: REVIEW.title })).toBeVisible();
       await expect(page.getByText(REVIEW.venue).first()).toBeVisible();
@@ -288,9 +290,10 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
     });
 
     await test.step("la crítica despublicada ya no aparece en la vista pública", async () => {
-      await page.goto("/");
-      await page.reload();
-      await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).not.toBeVisible();
+      for (const path of ["/critica", "/"]) {
+        await page.goto(path);
+        await expect(page.getByRole("link", { name: new RegExp(REVIEW.title) })).not.toBeVisible();
+      }
       await page.goto("/panel");
     });
 
@@ -349,6 +352,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-moderacion-anonima",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
@@ -386,6 +391,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-reacciones-anonimas",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
@@ -442,6 +449,8 @@ test.describe("Vista pública (sin sesión)", () => {
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-conteo-vistas",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })

@@ -17,6 +17,7 @@ if (!TEST_EMAIL || !TEST_PASSWORD) {
 
 const INTERVIEW = {
   title: "E2E TEST — Entrevista a Sofía Caporale sobre danza y teatro independiente",
+  summary: "Sofía Caporale cuenta cómo la danza se volvió el eje de su trabajo en el teatro independiente bahiense.",
   imageAlt: "Retrato de la entrevistada en el ensayo",
   imageAlt2: "La entrevistada durante la función",
   body: `¿Cómo empezó tu relación con la danza dentro del teatro independiente de Bahía Blanca?
@@ -81,6 +82,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(page).toHaveURL(/\/panel\/entrevistas\/nueva$/);
 
       await page.getByLabel("Título de la entrevista").fill(INTERVIEW.title);
+      await page.getByLabel("Bajada").fill(INTERVIEW.summary);
 
       await page.getByRole("textbox", { name: "Texto de la entrevista" }).click();
       await page.keyboard.insertText(INTERVIEW.body);
@@ -119,17 +121,17 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(interviewCard.getByRole("link", { name: "Ver publicación" })).toBeVisible();
     });
 
-    await test.step("la entrevista publicada aparece en la tab Entrevistas con la portada elegida, no en la tab de críticas", async () => {
-      await page.goto("/");
+    await test.step("la entrevista publicada aparece en /entrevista con la portada elegida, no en /critica", async () => {
+      await page.goto("/critica");
       await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
 
-      await page.getByRole("button", { name: "Entrevistas" }).click();
-      const listCard = page.getByRole("link", { name: new RegExp(INTERVIEW.title) });
+      await page.goto("/entrevista");
+      const listCard = page.getByTestId("review-card").filter({ hasText: INTERVIEW.title });
       await expect(listCard).toBeVisible();
       await expect(listCard.getByAltText(INTERVIEW.imageAlt2)).toBeVisible();
       await expect(listCard.getByAltText(INTERVIEW.imageAlt)).not.toBeVisible();
 
-      await listCard.click();
+      await listCard.getByRole("link", { name: INTERVIEW.title }).click();
       await expect(page).toHaveURL(/\/entrevista\/.+/);
       await expect(page.getByRole("heading", { name: INTERVIEW.title })).toBeVisible();
       await expect(page.getByAltText(INTERVIEW.imageAlt2)).toBeVisible();
@@ -205,11 +207,10 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
       await expect(interviewCard.getByText("Borrador")).toBeVisible();
       await expect(interviewCard.getByRole("link", { name: "Ver publicación" })).not.toBeVisible();
 
-      await page.goto("/");
-      await page.getByRole("button", { name: "Entrevistas" }).click();
-      await page.reload();
-      await page.getByRole("button", { name: "Entrevistas" }).click();
-      await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
+      for (const path of ["/entrevista", "/"]) {
+        await page.goto(path);
+        await expect(page.getByRole("link", { name: new RegExp(INTERVIEW.title) })).not.toBeVisible();
+      }
       await page.goto("/panel?tab=entrevistas");
     });
 
@@ -249,7 +250,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
 });
 
 test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
-  test("el home público mantiene los listados de críticas y entrevistas separados por tab", async ({ page }) => {
+  test("los listados públicos mantienen críticas y entrevistas separadas", async ({ page }) => {
     const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
 
     const [interview] = await db
@@ -261,6 +262,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
         body: "Cuerpo de entrevista de prueba.",
         contentJson: plainTextDoc("Cuerpo de entrevista de prueba."),
         slug: "entrevista-regresion-separacion-listados",
+        summary: "Bajada de prueba.",
         status: "published",
         publishedAt: new Date(),
       })
@@ -276,17 +278,19 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
         contentJson: plainTextDoc("Cuerpo de crítica de prueba."),
         slug: "critica-regresion-separacion-listados",
         rating: 4,
+        summary: "Bajada de prueba.",
+        eventDate: "2026-06-15",
         status: "published",
         publishedAt: new Date(),
       })
       .returning({ id: reviews.id, slug: reviews.slug });
 
     try {
-      await page.goto("/");
+      await page.goto("/critica");
       await expect(page.getByRole("link", { name: /Crítica de regresión/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Entrevista de regresión/ })).not.toBeVisible();
 
-      await page.getByRole("button", { name: "Entrevistas" }).click();
+      await page.goto("/entrevista");
       await expect(page.getByRole("link", { name: /Entrevista de regresión/ })).toBeVisible();
       await expect(page.getByRole("link", { name: /Crítica de regresión/ })).not.toBeVisible();
 
@@ -377,12 +381,13 @@ test.describe("Responsive: sin overflow horizontal en panel y público de entrev
     expect(hasOverflow).toBe(false);
   }
 
-  test("375px y 320px en la tab Entrevistas del home público", async ({ page }) => {
+  test("375px y 320px en la home y el listado de entrevistas", async ({ page }) => {
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 });
-      await page.goto("/");
-      await page.getByRole("button", { name: "Entrevistas" }).click();
-      await expectNoHorizontalOverflow(page);
+      for (const path of ["/", "/entrevista"]) {
+        await page.goto(path);
+        await expectNoHorizontalOverflow(page);
+      }
     }
   });
 

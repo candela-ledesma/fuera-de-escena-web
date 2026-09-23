@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db/client";
-import { categories, comments, reactions, reviewImages, reviews, reviewTags, tags } from "@/lib/db/schema";
+import { authors, categories, comments, reactions, reviewImages, reviews, reviewTags, tags } from "@/lib/db/schema";
 import type { reviewKindEnum } from "@/lib/db/schema";
 
 type DbClient = typeof db | Parameters<Parameters<(typeof db)["transaction"]>[0]>[0];
@@ -93,12 +93,14 @@ export async function getReviewByIdForAuthor(reviewId: string, authorId: string,
   return review ?? null;
 }
 
-export async function getPublishedReviews(kind: ReviewKind) {
-  return db
+export async function getPublishedReviews(kind: ReviewKind, { limit }: { limit?: number } = {}) {
+  const query = db
     .select({
       id: reviews.id,
       title: reviews.title,
+      summary: reviews.summary,
       slug: reviews.slug,
+      authorName: authors.displayName,
       venue: reviews.venue,
       eventDate: reviews.eventDate,
       rating: reviews.rating,
@@ -108,11 +110,17 @@ export async function getPublishedReviews(kind: ReviewKind) {
       coverImageAlt: reviewImages.altText,
     })
     .from(reviews)
+    .leftJoin(authors, eq(reviews.authorId, authors.id))
     .leftJoin(categories, eq(reviews.categoryId, categories.id))
     .leftJoin(reviewImages, and(eq(reviewImages.reviewId, reviews.id), eq(reviewImages.isCover, true)))
     .where(and(eq(reviews.status, "published"), eq(reviews.kind, kind)))
-    .orderBy(desc(reviews.publishedAt));
+    .orderBy(desc(reviews.publishedAt), desc(reviews.id))
+    .$dynamic();
+
+  return limit ? query.limit(limit) : query;
 }
+
+export type PublishedReviewItem = Awaited<ReturnType<typeof getPublishedReviews>>[number];
 
 export async function getPublishedReviewBySlug(slug: string, kind: ReviewKind) {
   const [review] = await db
@@ -247,6 +255,7 @@ export async function updateReviewDraftFields(
   kind: ReviewKind,
   fields: {
     title: string;
+    summary?: string | null;
     venue?: string | null;
     eventDate?: string | null;
     categoryId?: string | null;

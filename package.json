@@ -16,7 +16,7 @@
     "db:backfill-cover-images": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/backfill-cover-images.ts",
     "db:backfill-content-json": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/backfill-content-json.ts",
     "db:deduplicate-reactions": "node --env-file=.env.local ./node_modules/.bin/tsx src/lib/db/seed/deduplicate-reactions.ts",
-    "test:e2e": "node --env-file=.env.local ./node_modules/.bin/playwright test"
+    "test:e2e": "node --env-file=.env.test ./node_modules/.bin/playwright test"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

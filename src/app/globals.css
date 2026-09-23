@@ -23,12 +23,69 @@
   --radius: 1.25rem;
   --field-background: #fffdfa;
   --field-border: rgba(42, 31, 24, 0.22);
+  --muted-strong: #5e4a44;
+  --band: #3a2622;
+  --band-foreground: #faf5f1;
+  --band-accent: #e2c98e;
+}
+
+/*
+ * Sitio público (layout de (public)): paleta editorial. Solo redefine
+ * variables dentro de .theme-public; el panel de autora sigue con :root.
+ * Contraste sobre #faf5f1: texto 15:1, secundarios 7.6:1 y 6:1, acento 4.66:1
+ * (AA para texto normal, sin margen: no aclarar). Acento claro sobre la
+ * franja oscura: 8.8:1.
+ */
+.theme-public {
+  --background: #faf5f1;
+  --foreground: #2b1d1a;
+  --muted: #6e5a53;
+  --muted-strong: #5e4a44;
+  --card: #faf5f1;
+  --card-foreground: #2b1d1a;
+  --primary: #8a6a22;
+  --primary-hover: #6e551b;
+  --primary-foreground: #faf5f1;
+  --border: #e6d6ce;
+  --input: #e6d6ce;
+  --ring: rgba(138, 106, 34, 0.45);
+  --band: #3a2622;
+  --band-foreground: #faf5f1;
+  --band-accent: #e2c98e;
+
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/*
+ * `* { border-color }` (más abajo) no está en una capa y le gana a las
+ * utilidades border-* de Tailwind v4. En el sitio público, los bordes con
+ * color propio usan el modificador `!` (p. ej. `border-foreground!`).
+ *
+ * TODO(etapa del panel): mover `* { border-color }` a `@layer base` y sacar
+ * los `!` de los bordes del sitio público (rg "border-[a-z-]+!" src). No se
+ * hizo en el rediseño de la home porque cambia bordes del panel.
+ */
+
+/* Foco visible en acento (el borde #e6d6ce no llega a 3:1). */
+.theme-public :focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* Sobre la franja oscura, el acento claro. */
+.theme-public [data-surface="dark"] :focus-visible {
+  outline-color: var(--band-accent);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-band: var(--band);
+  --color-band-foreground: var(--band-foreground);
+  --color-band-accent: var(--band-accent);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
