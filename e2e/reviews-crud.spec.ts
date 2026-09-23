@@ -16,7 +16,7 @@ if (!TEST_EMAIL || !TEST_PASSWORD) {
 }
 
 const REVIEW = {
-  title: "Los hijos de la finada Mircheva, segunda parte",
+  title: "E2E TEST — Los hijos de la finada Mircheva, segunda parte",
   venue: "La Macanuda",
   eventDate: "2026-06-15",
   rating: "5",
@@ -48,7 +48,7 @@ const COMMENT = {
 };
 
 const DRAFT_REVIEW = {
-  title: "Borrador sin publicar para probar autosave",
+  title: "E2E TEST — Borrador sin publicar para probar autosave",
   body: "Texto parcial escrito mientras se prueba el autosave del panel.",
 };
 
@@ -344,7 +344,7 @@ test.describe("Vista pública (sin sesión)", () => {
       .values({
         authorId: author.id,
         categoryId: category.id,
-        title: "Crítica de prueba para moderación anónima",
+        title: "E2E TEST — Crítica de prueba para moderación anónima",
         body: "Cuerpo de prueba.",
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-moderacion-anonima",
@@ -381,7 +381,7 @@ test.describe("Vista pública (sin sesión)", () => {
       .values({
         authorId: author.id,
         categoryId: category.id,
-        title: "Crítica de prueba para reacciones anónimas",
+        title: "E2E TEST — Crítica de prueba para reacciones anónimas",
         body: "Cuerpo de prueba.",
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-reacciones-anonimas",
@@ -437,7 +437,7 @@ test.describe("Vista pública (sin sesión)", () => {
       .values({
         authorId: author.id,
         categoryId: category.id,
-        title: "Crítica de prueba para conteo de vistas",
+        title: "E2E TEST — Crítica de prueba para conteo de vistas",
         body: "Cuerpo de prueba.",
         contentJson: plainTextDoc("Cuerpo de prueba."),
         slug: "critica-prueba-conteo-vistas",

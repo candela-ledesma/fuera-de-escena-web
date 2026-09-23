@@ -16,7 +16,7 @@ if (!TEST_EMAIL || !TEST_PASSWORD) {
 }
 
 const INTERVIEW = {
-  title: "Entrevista a Sofía Caporale sobre danza y teatro independiente",
+  title: "E2E TEST — Entrevista a Sofía Caporale sobre danza y teatro independiente",
   imageAlt: "Retrato de la entrevistada en el ensayo",
   imageAlt2: "La entrevistada durante la función",
   body: `¿Cómo empezó tu relación con la danza dentro del teatro independiente de Bahía Blanca?
@@ -32,7 +32,7 @@ El principal desafío es correr el eje de la técnica pura y pensar el movimient
 const EDITED_TITLE_SUFFIX = " (editado)";
 
 const DRAFT_INTERVIEW = {
-  title: "Borrador de entrevista sin publicar para probar autosave",
+  title: "E2E TEST — Borrador de entrevista sin publicar para probar autosave",
   body: "Texto parcial de entrevista escrito mientras se prueba el autosave del panel.",
 };
 
@@ -257,7 +257,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
       .values({
         authorId: author.id,
         kind: "entrevista",
-        title: "Entrevista de regresión para separación de listados",
+        title: "E2E TEST — Entrevista de regresión para separación de listados",
         body: "Cuerpo de entrevista de prueba.",
         contentJson: plainTextDoc("Cuerpo de entrevista de prueba."),
         slug: "entrevista-regresion-separacion-listados",
@@ -271,7 +271,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
       .values({
         authorId: author.id,
         kind: "critica",
-        title: "Crítica de regresión para separación de listados",
+        title: "E2E TEST — Crítica de regresión para separación de listados",
         body: "Cuerpo de crítica de prueba.",
         contentJson: plainTextDoc("Cuerpo de crítica de prueba."),
         slug: "critica-regresion-separacion-listados",
@@ -316,7 +316,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
       .values({
         authorId: author.id,
         kind: "entrevista",
-        title: "Entrevista de regresión para panel separado",
+        title: "E2E TEST — Entrevista de regresión para panel separado",
         body: "Cuerpo de entrevista de prueba.",
         contentJson: plainTextDoc("Cuerpo de entrevista de prueba."),
         slug: "entrevista-regresion-panel-separado",
@@ -352,7 +352,7 @@ test.describe("Auth: gestión de entrevistas requiere sesión", () => {
       .values({
         authorId: author.id,
         kind: "entrevista",
-        title: "Entrevista de regresión para auth anónima",
+        title: "E2E TEST — Entrevista de regresión para auth anónima",
         body: "Cuerpo de entrevista de prueba.",
         contentJson: plainTextDoc("Cuerpo de entrevista de prueba."),
         slug: "entrevista-regresion-auth-anonima",
