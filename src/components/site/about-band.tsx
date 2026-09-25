@@ -32,7 +32,7 @@ export function AboutBand() {
           href={SITE.instagramUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-band-accent! px-7 py-3 text-xs font-medium uppercase tracking-[0.18em] text-band-foreground transition-colors hover:bg-band-accent hover:text-band"
+          className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-band-accent px-7 py-3 text-xs font-medium uppercase tracking-[0.18em] text-band-foreground transition-colors hover:bg-band-accent hover:text-band"
         >
           Seguir en Instagram
           <span className="sr-only"> (abre en una pestaña nueva)</span>

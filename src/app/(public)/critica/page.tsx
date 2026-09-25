@@ -18,7 +18,7 @@ export default async function ReviewsListPage() {
   return (
     <main>
       <Container className="pt-10 md:pt-16">
-        <h1 className="border-b border-foreground! pb-6 font-display text-[2.5rem] font-medium leading-tight text-foreground sm:text-5xl">
+        <h1 className="border-b border-foreground pb-6 font-display text-[2.5rem] font-medium leading-tight text-foreground sm:text-5xl">
           Críticas
         </h1>
 
