@@ -1,12 +1,12 @@
 "use server";
 
-import { del } from "@vercel/blob";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth/config";
 import { requireAuthorSession } from "@/lib/auth/guards";
+import { deleteOwnBlobs } from "@/lib/blob";
 import { db } from "@/lib/db/client";
 
 import { resolveFinalImages, resolveTagIds, resolveUniqueSlug } from "./action-helpers";
@@ -185,9 +185,7 @@ export async function updateReviewAction(
     await replaceReviewTags(existing.id, tagIds, tx);
   });
 
-  if (imagesToDelete.length > 0) {
-    await Promise.all(imagesToDelete.map((storagePath) => del(storagePath)));
-  }
+  await deleteOwnBlobs(imagesToDelete);
 
   revalidatePath("/panel");
   revalidatePath("/");
@@ -204,7 +202,7 @@ export async function deleteReviewAction(reviewSlug: string): Promise<void> {
   }
 
   const images = await getReviewImages(existing.id);
-  await Promise.all(images.map((image) => del(image.storagePath)));
+  await deleteOwnBlobs(images.map((image) => image.storagePath));
 
   await deleteReview(existing.id);
   revalidatePath("/panel");
