@@ -3,6 +3,13 @@
 :root {
   --background: #f5eae4;
   --foreground: #2a1f18;
+  /*
+   * TODO paleta panel: en este repo --muted es color de TEXTO, al revés que en
+   * shadcn (--muted = fondo, --muted-foreground = texto). Cualquier componente
+   * de shadcn que use `bg-muted` va a salir con fondo oscuro. Al agregar
+   * componentes con `npx shadcn add`, revisar `bg-muted`. Arreglo real:
+   * renombrar tokens en la etapa de paleta.
+   */
   --muted: #6b5449;
   --card: #fdf8f5;
   --card-foreground: #2a1f18;
@@ -72,6 +79,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  /* Alias para los componentes (shadcn y propios) que usan text-muted-foreground. */
+  --color-muted-foreground: var(--muted);
   --color-muted-strong: var(--muted-strong);
   --color-band: var(--band);
   --color-band-foreground: var(--band-foreground);
