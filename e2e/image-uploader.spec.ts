@@ -6,14 +6,7 @@ import { test, expect } from "@playwright/test";
 import { db } from "../src/lib/db/client";
 import { reviewImages, reviews } from "../src/lib/db/schema";
 
-const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
-const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
-
-if (!TEST_EMAIL || !TEST_PASSWORD) {
-  throw new Error(
-    "TEST_AUTHOR_EMAIL y TEST_AUTHOR_PASSWORD deben estar configuradas (.env.local) para correr los tests e2e.",
-  );
-}
+import { loginAsAuthor } from "./support/auth";
 
 const VALID_PNG_BUFFER = Buffer.from(
   "89504e470d0a1a0a0000000d4948445200000004000000040802000000269309" +
@@ -29,11 +22,7 @@ const OVERSIZED_PNG_BUFFER = Buffer.concat([
 
 test.describe("Validación del uploader de imágenes", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
 
     await page.goto("/panel/criticas/nueva");
     // setInputFiles antes de la hidratación se pierde (no hay onChange todavía).
@@ -123,11 +112,7 @@ test.describe("Persistencia de imágenes al editar una crítica", () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
   });
 
   test("borrar una imagen existente al editar persiste el cambio", async ({ page }) => {

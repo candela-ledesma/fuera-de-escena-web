@@ -6,14 +6,8 @@ import { test, expect } from "@playwright/test";
 import { db } from "../src/lib/db/client";
 import { authors, categories, comments, reviews } from "../src/lib/db/schema";
 
-const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
-const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
-
-if (!TEST_EMAIL || !TEST_PASSWORD) {
-  throw new Error(
-    "TEST_AUTHOR_EMAIL y TEST_AUTHOR_PASSWORD deben estar configuradas (.env.local) para correr los tests e2e.",
-  );
-}
+import { loginAsAuthor } from "./support/auth";
+import { plainTextDoc } from "./support/content";
 
 const REVIEW = {
   title: "E2E TEST — Los hijos de la finada Mircheva, segunda parte",
@@ -53,13 +47,6 @@ const DRAFT_REVIEW = {
   body: "Texto parcial escrito mientras se prueba el autosave del panel.",
 };
 
-function plainTextDoc(text: string) {
-  return {
-    type: "doc",
-    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
-  };
-}
-
 async function deleteLeftoverTestReviews() {
   await db.delete(reviews).where(eq(reviews.title, REVIEW.title));
   await db.delete(reviews).where(eq(reviews.title, DRAFT_REVIEW.title));
@@ -75,11 +62,7 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
   });
 
   test("crea, edita, publica, despublica y borra una crítica", async ({ page }) => {
@@ -475,11 +458,7 @@ test.describe("Vista pública (sin sesión)", () => {
         .where(eq(reviews.id, review.id));
       expect(afterSecondVisit.viewCount).toBe(1);
 
-      await page.goto("/login");
-      await page.getByLabel("Email").fill(TEST_EMAIL!);
-      await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-      await page.getByRole("button", { name: "Ingresar" }).click();
-      await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+      await loginAsAuthor(page);
 
       const reviewCard = page.locator("li", { hasText: "Crítica de prueba para conteo de vistas" });
       await expect(reviewCard.getByLabel("1 vistas")).toBeVisible();

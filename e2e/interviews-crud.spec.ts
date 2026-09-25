@@ -6,14 +6,8 @@ import { test, expect } from "@playwright/test";
 import { db } from "../src/lib/db/client";
 import { authors, reviews } from "../src/lib/db/schema";
 
-const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
-const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
-
-if (!TEST_EMAIL || !TEST_PASSWORD) {
-  throw new Error(
-    "TEST_AUTHOR_EMAIL y TEST_AUTHOR_PASSWORD deben estar configuradas (.env.local) para correr los tests e2e.",
-  );
-}
+import { loginAsAuthor } from "./support/auth";
+import { plainTextDoc } from "./support/content";
 
 const INTERVIEW = {
   title: "E2E TEST — Entrevista a Sofía Caporale sobre danza y teatro independiente",
@@ -42,13 +36,6 @@ const COMMENT = {
   body: "Qué buena entrevista, muy claro el recorrido artístico.",
 };
 
-function plainTextDoc(text: string) {
-  return {
-    type: "doc",
-    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
-  };
-}
-
 async function deleteLeftoverTestInterviews() {
   await db.delete(reviews).where(eq(reviews.title, INTERVIEW.title));
   await db.delete(reviews).where(eq(reviews.title, `${INTERVIEW.title}${EDITED_TITLE_SUFFIX}`));
@@ -65,11 +52,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
   });
 
   test("crea, edita, publica, despublica y borra una entrevista", async ({ page }) => {
@@ -307,11 +290,7 @@ test.describe("Regresión: críticas y entrevistas no se mezclan", () => {
   });
 
   test("el panel de críticas y el de entrevistas mantienen los listados separados", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
 
     const [author] = await db.select({ id: authors.id }).from(authors).limit(1);
 
@@ -392,11 +371,7 @@ test.describe("Responsive: sin overflow horizontal en panel y público de entrev
   });
 
   test("375px y 320px en la tab Entrevistas del panel", async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.locator("#password").fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
 
     for (const width of [375, 320]) {
       await page.setViewportSize({ width, height: 812 });

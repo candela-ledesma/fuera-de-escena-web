@@ -4,14 +4,7 @@ import { test, expect } from "@playwright/test";
 import { db } from "../src/lib/db/client";
 import { authors, categories, reviews } from "../src/lib/db/schema";
 
-const TEST_EMAIL = process.env.TEST_AUTHOR_EMAIL;
-const TEST_PASSWORD = process.env.TEST_AUTHOR_PASSWORD;
-
-if (!TEST_EMAIL || !TEST_PASSWORD) {
-  throw new Error(
-    "TEST_AUTHOR_EMAIL y TEST_AUTHOR_PASSWORD deben estar configuradas (.env.local) para correr los tests e2e.",
-  );
-}
+import { loginAsAuthor } from "./support/auth";
 
 async function deleteReviewsByTitlePrefix(prefix: string) {
   const rows = await db.select({ id: reviews.id, title: reviews.title }).from(reviews);
@@ -31,11 +24,7 @@ test.describe("Editor TipTap del panel", () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
   });
 
   test("la toolbar acotada aplica formato y el estado activo se refleja", async ({ page }) => {
@@ -272,11 +261,7 @@ test.describe("Editor TipTap del panel", () => {
 
 test.describe("Layout de dos columnas del formulario de crítica", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(TEST_EMAIL!);
-    await page.getByLabel("Contraseña", { exact: true }).fill(TEST_PASSWORD!);
-    await page.getByRole("button", { name: "Ingresar" }).click();
-    await expect(page).toHaveURL(/\/panel$/, { timeout: 15_000 });
+    await loginAsAuthor(page);
   });
 
   test("en escritorio el editor y los metadatos aparecen lado a lado", async ({ page }) => {
