@@ -15,7 +15,7 @@ export function futurePublishedAt(): Date {
   return new Date(FUTURE_BASE + sequence * 60_000);
 }
 
-function plainTextDoc(text: string) {
+export function plainTextDoc(text: string) {
   return { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] };
 }
 
