@@ -1,66 +1,31 @@
 "use server";
 
-import { del, put } from "@vercel/blob";
+import { del } from "@vercel/blob";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { requireAuthorSession } from "@/lib/auth/guards";
 import { db } from "@/lib/db/client";
 
+import { resolveFinalImages, resolveTagIds, resolveUniqueSlug } from "@/features/reviews/action-helpers";
 import { validateAndNormalizeContent } from "@/features/reviews/content-validation";
 import {
   deleteReview,
-  findTagsByName,
   getReviewByIdForAuthor,
   getReviewBySlugForAuthor,
   getReviewImages,
   insertReview,
-  insertTags,
   replaceReviewImages,
   replaceReviewTags,
   setCoverImageByPosition,
-  slugExists,
   updateReview,
   updateReviewDraftFields,
 } from "@/features/reviews/queries";
-import {
-  ALLOWED_IMAGE_TYPES,
-  MAX_IMAGE_SIZE_BYTES,
-  MAX_REVIEW_IMAGES,
-  getPublishError,
-  interviewDraftFormSchema,
-  interviewFormSchema,
-  slugify,
-} from "@/features/reviews/schema";
+import { getPublishError, interviewDraftFormSchema, interviewFormSchema } from "@/features/reviews/schema";
 
 export type InterviewFormState = {
   error?: string;
 };
-
-async function resolveUniqueSlug(title: string, excludeReviewId?: string) {
-  const base = slugify(title);
-  let candidate = base;
-  let suffix = 2;
-
-  while (await slugExists(candidate, excludeReviewId)) {
-    candidate = `${base}-${suffix}`;
-    suffix += 1;
-  }
-
-  return candidate;
-}
-
-async function resolveTagIds(tagNames: string[]) {
-  if (tagNames.length === 0) return [];
-
-  const existing = await findTagsByName(tagNames);
-  const existingNames = new Set(existing.map((tag) => tag.name));
-  const missingNames = tagNames.filter((name) => !existingNames.has(name));
-
-  const created = await insertTags(missingNames.map((name) => ({ name, slug: slugify(name) })));
-
-  return [...existing, ...created].map((tag) => tag.id);
-}
 
 function parseForm(formData: FormData) {
   return interviewFormSchema.safeParse({
@@ -70,65 +35,6 @@ function parseForm(formData: FormData) {
     tags: formData.get("tags") || undefined,
     coverIndex: formData.get("coverIndex") || undefined,
   });
-}
-
-function validateImageFile(file: File): string | null {
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return "Las imágenes deben ser JPG, PNG o WEBP.";
-  }
-
-  if (file.size > MAX_IMAGE_SIZE_BYTES) {
-    return "Cada imagen debe pesar menos de 5MB.";
-  }
-
-  return null;
-}
-
-async function resolveFinalImages(
-  formData: FormData,
-  slug: string,
-  coverIndex: number,
-): Promise<{ images: { storagePath: string; altText: string; position: number; isCover: boolean }[] } | { error: string }> {
-  const order = formData.getAll("imageOrder").map((entry) => String(entry));
-  const files = formData
-    .getAll("images")
-    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
-  const altTexts = formData.getAll("imageAlts").map((entry) => String(entry));
-
-  if (order.length > MAX_REVIEW_IMAGES) {
-    return { error: `Máximo ${MAX_REVIEW_IMAGES} imágenes.` };
-  }
-
-  for (const file of files) {
-    const error = validateImageFile(file);
-    if (error) return { error };
-  }
-
-  let fileIndex = 0;
-  const storagePaths = await Promise.all(
-    order.map(async (entry, index) => {
-      if (entry === "new") {
-        const file = files[fileIndex];
-        fileIndex += 1;
-        const blob = await put(`interviews/${slug}-${Date.now()}-${index}`, file, {
-          access: "public",
-          addRandomSuffix: true,
-        });
-        return blob.url;
-      }
-
-      return entry.slice("existing:".length);
-    }),
-  );
-
-  const images = storagePaths.map((storagePath, index) => ({
-    storagePath,
-    altText: altTexts[index] ?? "",
-    position: index + 1,
-    isCover: index === coverIndex,
-  }));
-
-  return { images };
 }
 
 export async function createInterview(
@@ -153,7 +59,7 @@ export async function createInterview(
   const slug = await resolveUniqueSlug(title);
   const tagIds = await resolveTagIds(tags);
 
-  const imagesResult = await resolveFinalImages(formData, slug, coverIndex);
+  const imagesResult = await resolveFinalImages(formData, slug, coverIndex, "interviews");
 
   if ("error" in imagesResult) {
     return { error: imagesResult.error };
@@ -231,7 +137,7 @@ export async function updateInterviewAction(
     null;
 
   if (hasImageOrder) {
-    const imagesResult = await resolveFinalImages(formData, slug, coverIndex);
+    const imagesResult = await resolveFinalImages(formData, slug, coverIndex, "interviews");
 
     if ("error" in imagesResult) {
       return { error: imagesResult.error };
