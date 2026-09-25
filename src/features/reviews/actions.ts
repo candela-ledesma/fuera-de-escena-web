@@ -190,7 +190,8 @@ export async function updateReviewAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/critica/${slug}`);
-  redirect("/panel?saved=updated");
+  // El id le permite al panel borrar la copia local de cambios (solo si el guardado salió bien).
+  redirect(`/panel?saved=updated&id=${existing.id}`);
 }
 
 export async function deleteReviewAction(reviewSlug: string): Promise<void> {

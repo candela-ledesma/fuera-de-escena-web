@@ -46,6 +46,7 @@ export default async function EditInterviewPage({
         submitLabel="Guardar cambios"
         status={interview.status}
         interviewId={interview.id}
+        updatedAt={interview.updatedAt.toISOString()}
         interviewSlug={interview.slug}
         defaults={{
           title: interview.title,

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardStats } from "@/features/reviews/components/dashboard-stats";
 import { ReviewList } from "@/features/reviews/components/review-list";
 import { InterviewList } from "@/features/interviews/components/interview-list";
+import { clearEditCopy } from "@/features/reviews/edit-copy";
 
 import { PanelTabs, type PanelTab } from "./panel-tabs";
 
@@ -47,6 +48,10 @@ export function PanelListing({
     if (!saved) return;
 
     const tabFromUrl: PanelTab = searchParams.get("tab") === "entrevistas" ? "entrevistas" : "criticas";
+    const savedId = searchParams.get("id");
+    if (saved === "updated" && savedId) {
+      clearEditCopy(tabFromUrl === "entrevistas" ? "entrevista" : "critica", savedId);
+    }
     toast.success(SAVED_MESSAGES[tabFromUrl][saved] ?? "Guardado.");
     router.replace(tabFromUrl === "entrevistas" ? "/panel?tab=entrevistas" : "/panel", { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -21,13 +21,16 @@ import { cn } from "@/lib/utils";
 
 import type { ReviewFormState } from "../actions";
 import { saveDraftAction } from "../actions";
+import type { EditCopyFields } from "../edit-copy";
 import { reviewFormSchema } from "../schema";
+import { EditCopyBanner } from "./edit-copy-banner";
 import { ImageUploader, type ExistingImage } from "./image-uploader";
 import { StarRating } from "./star-rating";
 import { SummaryField } from "./summary-field";
 import { TagsInput } from "./tags-input";
 import { TiptapEditor, type TiptapEditorHandle } from "./tiptap-editor";
 import { AutoResizeTitle } from "./auto-resize-title";
+import { useEditCopy } from "./use-edit-copy";
 
 const AUTOSAVE_DEBOUNCE_MS = 4000;
 
@@ -64,7 +67,7 @@ type FormValues = {
   summary?: string;
   venue?: string;
   eventDate?: string;
-  categoryId: string;
+  categoryId?: string;
   rating: number | undefined;
   contentJson: string;
   tags?: string;
@@ -78,6 +81,7 @@ export function ReviewForm({
   status,
   reviewId,
   reviewSlug,
+  updatedAt,
 }: {
   categories: Category[];
   defaults?: ReviewDefaults;
@@ -86,6 +90,8 @@ export function ReviewForm({
   status?: "draft" | "published";
   reviewId?: string;
   reviewSlug?: string;
+  /** updatedAt de la fila al abrir el formulario (ISO): detecta si una copia local quedó vieja. */
+  updatedAt?: string;
 }) {
   const router = useRouter();
   const [state, formAction, isActionPending] = useActionState(action, {});
@@ -95,9 +101,13 @@ export function ReviewForm({
   const draftIdRef = useRef<string | null>(reviewId ?? null);
   const isSubmittingRef = useRef(false);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
   const [plainText, setPlainText] = useState("");
+  // Valores al abrir, con el cuerpo ya normalizado por el editor. Null hasta que
+  // el editor está listo: antes no se autoguarda ni se compara nada.
+  const [originalFields, setOriginalFields] = useState<EditCopyFields | null>(null);
+  // Lo último que se guardó en el servidor (o el original): evita guardar sin cambios.
+  const lastSavedRef = useRef<string | null>(null);
 
   const {
     register,
@@ -129,6 +139,29 @@ export function ReviewForm({
   const rating = watch("rating");
   const categoryId = watch("categoryId");
   const tags = watch("tags");
+  const currentFields = useMemo<EditCopyFields>(
+    () => ({
+      title: title ?? "",
+      summary: summary ?? "",
+      venue: venue ?? "",
+      eventDate: eventDate ?? "",
+      categoryId: categoryId ?? "",
+      rating: rating ? String(rating) : "",
+      tags: tags ?? "",
+      contentJson: JSON.stringify(contentJson),
+    }),
+    [title, summary, venue, eventDate, categoryId, rating, tags, contentJson],
+  );
+  const currentFieldsKey = JSON.stringify(currentFields);
+  const editCopy = useEditCopy({
+    kind: "critica",
+    id: reviewId,
+    serverUpdatedAt: updatedAt,
+    isPublished,
+    originalFields,
+    currentFields,
+    isSubmittingRef,
+  });
   const wordCount = useMemo(() => {
     const trimmed = plainText.trim();
     return trimmed ? trimmed.split(/\s+/).length : 0;
@@ -145,15 +178,53 @@ export function ReviewForm({
     }
   }, [state]);
 
+  function handleEditorReady(json: unknown, text: string) {
+    setContentJson(json);
+    setPlainText(text);
+    setValue("contentJson", JSON.stringify(json));
+
+    const original: EditCopyFields = {
+      title: defaults.title,
+      summary: defaults.summary,
+      venue: defaults.venue,
+      eventDate: defaults.eventDate,
+      categoryId: defaults.categoryId,
+      rating: defaults.rating,
+      tags: defaults.tags,
+      contentJson: JSON.stringify(json),
+    };
+    lastSavedRef.current = JSON.stringify(original);
+    setOriginalFields(original);
+  }
+
+  function applyRecoveredFields(fields: EditCopyFields) {
+    setValue("title", fields.title ?? "");
+    setValue("summary", fields.summary ?? "");
+    setValue("venue", fields.venue ?? "");
+    setValue("eventDate", fields.eventDate ?? "");
+    setValue("categoryId", fields.categoryId || undefined);
+    setValue("rating", fields.rating ? Number(fields.rating) : undefined);
+    setValue("tags", fields.tags ?? "");
+    if (fields.contentJson) editorRef.current?.setContent(JSON.parse(fields.contentJson));
+  }
+
   function handleEditorChange(json: unknown, text: string) {
     setContentJson(json);
     setPlainText(text);
     setValue("contentJson", JSON.stringify(json), { shouldValidate: true });
   }
 
+  // Autosave en el servidor, solo para borradores. Una publicada no se
+  // autoguarda (se vería en vivo a medio escribir): usa la copia local.
   useEffect(() => {
+    if (!originalFields || isPublished) return;
+    // Sin cambios desde lo último guardado: tampoco se guarda al abrir.
+    if (currentFieldsKey === lastSavedRef.current) return;
+
     const hasContent = Boolean(title?.trim() || plainText.trim());
     if (!hasContent) return;
+
+    const snapshot = currentFieldsKey;
 
     const timer = setTimeout(() => {
       if (isSubmittingRef.current) return;
@@ -174,16 +245,13 @@ export function ReviewForm({
           if (isSubmittingRef.current) return;
 
           if ("error" in result) {
-            // En una publicada, el error suele ser que falta bajada o fecha:
-            // mostramos el motivo en vez del genérico.
-            setAutosaveError(isPublished ? result.error : null);
             setAutosaveState("error");
             return;
           }
 
           const isFirstSave = draftIdRef.current === null;
           draftIdRef.current = result.id;
-          setAutosaveError(null);
+          lastSavedRef.current = snapshot;
           setAutosaveState("saved");
 
           if (isFirstSave && !reviewId) {
@@ -197,7 +265,7 @@ export function ReviewForm({
 
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, summary, venue, eventDate, categoryId, rating, contentJson, plainText, tags]);
+  }, [currentFieldsKey, originalFields, isPublished]);
 
   function onValid() {
     if (!formRef.current) return;
@@ -220,6 +288,19 @@ export function ReviewForm({
 
   return (
     <form ref={formRef} onSubmit={handleSubmit(onValid)} noValidate className="pb-24">
+      {editCopy.pending ? (
+        <EditCopyBanner
+          kind="critica"
+          savedAt={editCopy.pending.savedAt}
+          isConflict={editCopy.isConflict}
+          onRecover={() => {
+            const fields = editCopy.recover();
+            if (fields) applyRecoveredFields(fields);
+          }}
+          onDiscard={editCopy.discard}
+        />
+      ) : null}
+
       {status ? (
         <div className="mb-4 flex items-center gap-3 text-sm">
           <span
@@ -273,6 +354,7 @@ export function ReviewForm({
               ref={editorRef}
               content={defaults.contentJson ?? EMPTY_DOC}
               onChange={handleEditorChange}
+              onReady={handleEditorReady}
             />
           </div>
           <input type="hidden" {...register("contentJson")} />
@@ -363,10 +445,20 @@ export function ReviewForm({
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background px-4 py-3 sm:px-6">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-          <span className="text-sm text-muted-foreground">
-            {autosaveState === "saving" ? "Guardando…" : null}
-            {autosaveState === "saved" ? "Guardado hace un momento" : null}
-            {autosaveState === "error" ? (autosaveError ?? "No se pudo guardar el borrador. Reintentando…") : null}
+          <span data-testid="autosave-status" className="text-sm text-muted-foreground">
+            {isPublished ? (
+              editCopy.pending ? (
+                "Elegí recuperar o descartar los cambios guardados en este navegador."
+              ) : editCopy.hasChanges ? (
+                "Cambios sin guardar · copia local en este navegador (sin imágenes)"
+              ) : null
+            ) : (
+              <>
+                {autosaveState === "saving" ? "Guardando…" : null}
+                {autosaveState === "saved" ? "Guardado hace un momento" : null}
+                {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
+              </>
+            )}
           </span>
           <Button type="submit" disabled={isPending} className="justify-self-end">
             {isPending ? "Guardando…" : submitButtonLabel}

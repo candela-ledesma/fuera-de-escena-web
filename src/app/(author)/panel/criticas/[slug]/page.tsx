@@ -51,6 +51,7 @@ export default async function EditReviewPage({
         submitLabel="Guardar cambios"
         status={review.status}
         reviewId={review.id}
+        updatedAt={review.updatedAt.toISOString()}
         reviewSlug={review.slug}
         defaults={{
           title: review.title,
