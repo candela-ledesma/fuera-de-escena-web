@@ -1,12 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { assertTestDatabase } from "./e2e/support/db-guard";
+import { assertTestBlobStore, assertTestDatabase } from "./e2e/support/db-guard";
 
 // La suite escribe fixtures en la base: corre contra el branch `test` de Neon
 // (.env.test), nunca contra dev ni producción. Puerto propio para no reusar
 // por error un `npm run dev` que esté levantado en el 3000 contra `dev`.
 // Además, el globalSetup borra todo el contenido: se verifica el host antes de nada.
 assertTestDatabase();
+assertTestBlobStore();
 
 const PORT = 3100;
 const BASE_URL = `http://localhost:${PORT}`;
