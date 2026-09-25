@@ -44,11 +44,17 @@ export function isBlobUrlFromStore(url: string, storeId: string): boolean {
   return hostname.toLowerCase() === `${storeId.toLowerCase()}.public.blob.vercel-storage.com`;
 }
 
-/** Borra solo las URLs del store propio. Las ajenas se saltean con un aviso en el log. */
-export async function deleteOwnBlobs(urls: string[]): Promise<void> {
+/**
+ * Borra solo las URLs del store propio. Las ajenas se saltean con un aviso en el log.
+ * `remove` y `env` se inyectan solo en los tests.
+ */
+export async function deleteOwnBlobs(
+  urls: string[],
+  { remove = del, env = process.env }: { remove?: (urls: string[]) => Promise<void>; env?: Record<string, string | undefined> } = {},
+): Promise<void> {
   if (urls.length === 0) return;
 
-  const storeId = getBlobStoreId();
+  const storeId = getBlobStoreId(env);
 
   if (!storeId) {
     console.warn(`${LOG_PREFIX} No se pudo determinar el store de Blob: no se borra ningún archivo.`, {
@@ -68,6 +74,6 @@ export async function deleteOwnBlobs(urls: string[]): Promise<void> {
   }
 
   if (own.length > 0) {
-    await del(own);
+    await remove(own);
   }
 }

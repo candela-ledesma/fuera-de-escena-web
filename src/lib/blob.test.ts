@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 
-import { getBlobStoreId, isBlobUrlFromStore } from "./blob";
+import { deleteOwnBlobs, getBlobStoreId, isBlobUrlFromStore } from "./blob";
 
 describe("getBlobStoreId", () => {
   it("usa BLOB_STORE_ID (con o sin prefijo store_)", () => {
@@ -46,5 +46,42 @@ describe("isBlobUrlFromStore", () => {
       false,
     );
     assert.equal(isBlobUrlFromStore("no es una url", "vLxAC27HCTHwyGO4"), false);
+  });
+});
+
+describe("deleteOwnBlobs", () => {
+  const env = { BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_vLxAC27HCTHwyGO4_secret" };
+  const own = "https://vlxac27hcthwygo4.public.blob.vercel-storage.com/reviews/propia.png";
+  const foreign = "https://otrostore123.public.blob.vercel-storage.com/reviews/ajena.png";
+
+  it("borra solo las URLs del store propio y avisa con [blob-guard] por las ajenas", async (t) => {
+    const warn = t.mock.method(console, "warn", () => {});
+    const remove = mock.fn<(urls: string[]) => Promise<void>>(async () => {});
+
+    await deleteOwnBlobs([own, foreign], { remove, env });
+
+    assert.equal(remove.mock.callCount(), 1);
+    assert.deepEqual(remove.mock.calls[0].arguments[0], [own]);
+    assert.equal(warn.mock.callCount(), 1);
+    assert.match(String(warn.mock.calls[0].arguments[0]), /^\[blob-guard\] .*ajena\.png/);
+  });
+
+  it("si no puede determinar el store, no borra nada y avisa", async (t) => {
+    const warn = t.mock.method(console, "warn", () => {});
+    const remove = mock.fn<(urls: string[]) => Promise<void>>(async () => {});
+
+    await deleteOwnBlobs([own], { remove, env: { BLOB_READ_WRITE_TOKEN: "formato-desconocido" } });
+
+    assert.equal(remove.mock.callCount(), 0);
+    assert.match(String(warn.mock.calls[0].arguments[0]), /^\[blob-guard\] /);
+  });
+
+  it("si todas son ajenas, no llama al borrado", async (t) => {
+    t.mock.method(console, "warn", () => {});
+    const remove = mock.fn<(urls: string[]) => Promise<void>>(async () => {});
+
+    await deleteOwnBlobs([foreign], { remove, env });
+
+    assert.equal(remove.mock.callCount(), 0);
   });
 });
