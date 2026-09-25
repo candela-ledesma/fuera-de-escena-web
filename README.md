@@ -46,6 +46,40 @@ Cada entorno usa su propio branch de Neon. Los ids de endpoint (`ep-…`) se ven
 
 **Nunca** hay que apuntar `.env.local` ni `.env.test` a producción.
 
+## Stores de Blob
+
+Las imágenes van a Vercel Blob. El objetivo es que producción tenga su propio store y que el resto de los entornos usen uno no productivo:
+
+| Entorno | Store | Credencial |
+|---|---|---|
+| Producción | store de producción | `BLOB_STORE_ID` (Vercel, OIDC), solo en Production |
+| Previews de Vercel | store no productivo | `BLOB_STORE_ID` (Vercel, OIDC), solo en Preview y Development |
+| Desarrollo local | store no productivo | `BLOB_READ_WRITE_TOKEN` en `.env.local` |
+| Tests E2E | store no productivo | `BLOB_READ_WRITE_TOKEN` + `E2E_BLOB_STORE_ID` en `.env.test` |
+
+> ⚠️ **Hasta completar los pasos de abajo, todos los entornos siguen usando el store de producción.** Local y los previews todavía pueden subir archivos a producción y **borrar archivos de producción**. El resguardo de la app evita borrar imágenes de *otro* store, pero mientras el store sea el mismo, no las distingue.
+
+**Resguardo en la app.** Las bases `dev` y `test` son copias de producción, así que sus filas apuntan a imágenes del store de producción. `deleteOwnBlobs` (`src/lib/blob.ts`) solo borra las URLs del store con el que corre la app. Las demás se saltean con un aviso `[blob-guard]` en el log, que se puede buscar en los logs de Vercel. Si no puede determinar el store, no borra nada.
+
+**Pasos para separar los stores**, a hacer después de desplegar el resguardo:
+
+1. En Vercel → Storage, crear un store nuevo (por ejemplo `fuera-de-escena-nonprod`) y conectarlo al proyecto **solo en Preview y Development**.
+2. En la conexión del store actual, dejar **solo Production**.
+3. Copiar el read-write token del store nuevo a `BLOB_READ_WRITE_TOKEN` en `.env.local` y en `.env.test`.
+4. En `.env.test`, poner en `E2E_BLOB_STORE_ID` el id del store nuevo (la parte del token entre `vercel_blob_rw_` y el siguiente `_`).
+5. Correr `npm run test:e2e` y abrir un preview para verificar.
+
+Las imágenes heredadas de producción se siguen viendo en `dev` y en los previews, porque son URLs públicas, pero desde ahí ya no se pueden borrar.
+
+**Limpieza de archivos de E2E en producción.** Mientras la suite usó el store de producción, dejó archivos en `reviews/e2e-test-*` e `interviews/e2e-test-*`. Para listarlos o borrarlos, con el token del store de producción:
+
+```bash
+BLOB_READ_WRITE_TOKEN='<token>' npx tsx scripts/cleanup-e2e-blobs.ts         # dry-run: cantidad, tamaño y ejemplos
+BLOB_READ_WRITE_TOKEN='<token>' npx tsx scripts/cleanup-e2e-blobs.ts --yes   # borra
+```
+
+Solo toca esos dos prefijos y no está conectado a ningún script automático.
+
 ## Configuración local
 
 1. Instalar dependencias:
@@ -59,7 +93,7 @@ Cada entorno usa su propio branch de Neon. Los ids de endpoint (`ep-…`) se ven
    ```bash
    DATABASE_URL=postgresql://...   # branch `dev`
    AUTH_SECRET=...
-   BLOB_READ_WRITE_TOKEN=...
+   BLOB_READ_WRITE_TOKEN=...       # store no productivo
    ```
 
 3. Para los E2E, crear además `.env.test` apuntando al branch `test`:
@@ -67,10 +101,11 @@ Cada entorno usa su propio branch de Neon. Los ids de endpoint (`ep-…`) se ven
    ```bash
    DATABASE_URL=postgresql://...   # branch `test`
    AUTH_SECRET=...
-   BLOB_READ_WRITE_TOKEN=...
+   BLOB_READ_WRITE_TOKEN=...       # store no productivo
    TEST_AUTHOR_EMAIL=...
    TEST_AUTHOR_PASSWORD=...
    E2E_DB_HOST=ep-...              # id del endpoint del branch `test`
+   E2E_BLOB_STORE_ID=...           # id del store del token de arriba
    ```
 
    La autora de prueba tiene que existir en `test` y tener `displayName` cargado, porque los tests verifican la firma.
@@ -98,6 +133,7 @@ npm run test:e2e
 - Usa `.env.test` y levanta un build de producción en el puerto **3100**, para no reusar por error un `npm run dev` en el 3000.
 - **Al arrancar borra todo el contenido de la base `test`** (`e2e/global-setup.ts`). Se conservan las categorías y las autoras. Después, cada test crea sus propios datos y los borra al terminar.
 - Si el host de `DATABASE_URL` no coincide con `E2E_DB_HOST`, la suite aborta sin tocar nada. Si se recrea el branch `test`, hay que actualizar las dos variables.
+- Mismo criterio para Blob: si el store del `BLOB_READ_WRITE_TOKEN` no es `E2E_BLOB_STORE_ID`, la suite aborta.
 - Los estados globales de la home (0 críticas, 1 crítica, sin entrevistas) están en `e2e/home-states.spec.ts`. Corren en un project de Playwright aparte, después del resto de la suite.
 - Los helpers compartidos (login, fixtures, borrado) están en `e2e/support/`.
 
@@ -153,6 +189,7 @@ Si algo falla después del deploy, lo más rápido es el "Instant Rollback" de V
 - `npm run build`: build de producción.
 - `npm run start`: correr el build de producción.
 - `npm run lint`: lint con ESLint.
+- `npm run test:unit`: tests unitarios (`src/**/*.test.ts`) con el runner de Node.
 - `npm run test:e2e`: suite E2E con Playwright (ver "Tests E2E").
 - `npm run db:generate`: generar migraciones con Drizzle.
 - `npm run db:migrate`: aplicar migraciones contra `.env.local` (`dev`).
@@ -176,3 +213,4 @@ Scripts de mantenimiento puntual, que se usaron en migraciones de datos anterior
 - `src/lib`: auth, base de datos, utilidades y `site-config.ts` (textos y links del sitio).
 - `drizzle`: migraciones SQL generadas. En `drizzle/rollback` están los rollbacks manuales.
 - `e2e`: pruebas end-to-end con Playwright. En `e2e/support` están los helpers compartidos.
+- `scripts`: scripts manuales que no se corren solos (por ejemplo, la limpieza de archivos de E2E en Blob).
