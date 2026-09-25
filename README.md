@@ -1,21 +1,27 @@
 # Fuera de Escena Web
 
-Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. Incluye un panel privado para la autora y una vista pública para lectores.
+Sitio web para publicar y consultar críticas teatrales y entrevistas de **Fuera de Escena** (Bahía Blanca). Incluye un sitio público con formato editorial y un panel privado para la autora.
 
 ## Características
 
-- Publicación de críticas con estado borrador/publicada.
-- Subida de hasta 2 imágenes por crítica (con portada seleccionable).
-- Sistema de etiquetas y categorías.
-- Comentarios públicos en cada crítica.
-- Reacciones anónimas (like, love, wow, applause).
-- Panel de autora con login y CRUD completo.
+- **Sitio público:**
+  - home editorial con la última crítica destacada, las críticas recientes, las entrevistas y la franja "Sobre";
+  - listados en `/critica` y `/entrevista`;
+  - detalle de cada una en `/critica/[slug]` y `/entrevista/[slug]`.
+- **Críticas y entrevistas** con estado borrador o publicada. Para publicar hacen falta:
+  - la **bajada** (texto corto, hasta 200 caracteres), en las dos;
+  - la **fecha de función**, solo en las críticas.
+- **Imágenes:** hasta 2 por crítica o entrevista, con portada seleccionable.
+- **Etiquetas y categorías.**
+- **Comentarios públicos**, que la autora puede moderar.
+- **Reacciones anónimas** ("Me gusta", "Me encanta", "Me sorprende", "Aplauso"): cada visitante puede tener una sola reacción por publicación.
+- **Panel de autora** con login, autosave de borradores y CRUD completo. Se entra desde "Acceso autora", en el footer.
 
 ## Stack
 
 - Next.js 15 (App Router)
 - React 19 + TypeScript
-- Tailwind CSS + componentes UI reutilizables
+- Tailwind CSS v4 + componentes UI reutilizables
 - NextAuth (credenciales)
 - Drizzle ORM + PostgreSQL (Neon)
 - Vercel Blob para almacenamiento de imágenes
@@ -25,7 +31,20 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
 
 - Node.js 20+
 - npm 10+
-- Base de datos PostgreSQL accesible por `DATABASE_URL`
+- Acceso a los branches `dev` y `test` del proyecto de Neon
+
+## Entornos de base de datos
+
+Cada entorno usa su propio branch de Neon. Los ids de endpoint (`ep-…`) se ven en la consola de Neon y cambian si se recrea un branch.
+
+| Entorno | Branch de Neon | Dónde se configura |
+|---|---|---|
+| Desarrollo local | `dev` | `.env.local` |
+| Previews de Vercel | `dev` | Vercel → `DATABASE_URL` (Preview) |
+| Tests E2E | `test` (hijo de `production`) | `.env.test` |
+| Producción | `production` | Vercel → `DATABASE_URL` (Production) |
+
+**Nunca** hay que apuntar `.env.local` ni `.env.test` a producción.
 
 ## Configuración local
 
@@ -35,19 +54,15 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
    npm ci
    ```
 
-2. Crear `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/.env.local` con variables mínimas:
+2. Crear `.env.local` en la raíz del repo:
 
    ```bash
-   DATABASE_URL=postgresql://...
+   DATABASE_URL=postgresql://...   # branch `dev`
    AUTH_SECRET=...
    BLOB_READ_WRITE_TOKEN=...
-
    ```
 
-   `DATABASE_URL` apunta al branch `dev` de Neon, nunca a producción.
-
-   Para los E2E, crear además `.env.test` con las mismas variables apuntando
-   al branch `test` de Neon, más la autora de prueba:
+3. Para los E2E, crear además `.env.test` apuntando al branch `test`:
 
    ```bash
    DATABASE_URL=postgresql://...   # branch `test`
@@ -58,13 +73,9 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
    E2E_DB_HOST=ep-...              # id del endpoint del branch `test`
    ```
 
-   **La suite borra todo el contenido de la base `test` al arrancar**
-   (`e2e/global-setup.ts`) y cada test crea sus propios datos. Si el host de
-   `DATABASE_URL` no coincide con `E2E_DB_HOST`, aborta sin tocar nada. Los
-   estados globales de la home (`e2e/home-states.spec.ts`) corren en un
-   project aparte, después del resto.
+   La autora de prueba tiene que existir en `test` y tener `displayName` cargado, porque los tests verifican la firma.
 
-3. Ejecutar migraciones y semillas:
+4. Ejecutar migraciones y semillas (contra `dev`):
 
    ```bash
    npm run db:migrate
@@ -72,29 +83,96 @@ Sitio web para publicar y consultar críticas teatrales de **Fuera de Escena**. 
    npm run db:create-author -- autora@dominio.com passwordSegura "Nombre de autora"
    ```
 
-4. Iniciar el entorno de desarrollo:
+5. Iniciar el entorno de desarrollo:
 
    ```bash
    npm run dev
    ```
 
+## Tests E2E
+
+```bash
+npm run test:e2e
+```
+
+- Usa `.env.test` y levanta un build de producción en el puerto **3100**, para no reusar por error un `npm run dev` en el 3000.
+- **Al arrancar borra todo el contenido de la base `test`** (`e2e/global-setup.ts`). Se conservan las categorías y las autoras. Después, cada test crea sus propios datos y los borra al terminar.
+- Si el host de `DATABASE_URL` no coincide con `E2E_DB_HOST`, la suite aborta sin tocar nada. Si se recrea el branch `test`, hay que actualizar las dos variables.
+- Los estados globales de la home (0 críticas, 1 crítica, sin entrevistas) están en `e2e/home-states.spec.ts`. Corren en un project de Playwright aparte, después del resto de la suite.
+- Los helpers compartidos (login, fixtures, borrado) están en `e2e/support/`.
+
+## Migraciones
+
+1. Cambiar `src/lib/db/schema.ts` y generar la migración con `npm run db:generate`. Revisar el SQL generado en `drizzle/`.
+2. Si la migración no es trivial, agregar el rollback en `drizzle/rollback/` (drizzle-kit no genera "down").
+3. Aplicarla en `dev` con `npm run db:migrate`.
+4. Aplicarla en `test` con `node --env-file=.env.test ./node_modules/.bin/drizzle-kit migrate`.
+5. Correr la suite E2E.
+
+### Migraciones en producción
+
+> ⚠️ **La migración se aplica en producción ANTES de mergear a `main`.** Vercel despliega `main` automáticamente. Si el código nuevo llega antes que la columna, las páginas que la usan fallan.
+
+Las migraciones tienen que ser compatibles con el código que ya está en producción (por ejemplo, columnas nuevas nullable), para que aplicarlas antes del merge no rompa nada.
+
+La URL de producción no se puede bajar con `vercel env pull`: es una variable sensible y vuelve vacía. Se toma de la consola de Neon (branch `production`). Hay dos formas de aplicar la migración:
+
+**A. Desde la terminal**, sin guardar la URL en ningún archivo:
+
+```bash
+DATABASE_URL='<URL del branch production>' npx drizzle-kit migrate
+```
+
+**B. Desde la consola SQL de Neon.** Hay que pegar el SQL de la migración **y** registrarla en la misma transacción. Si no se registra, el próximo `drizzle-kit migrate` intenta aplicarla de nuevo y falla.
+
+```sql
+BEGIN;
+
+-- contenido de drizzle/NNNN_nombre.sql
+
+INSERT INTO "drizzle"."__drizzle_migrations" ("hash", "created_at")
+VALUES ('<hash>', <when>);
+
+COMMIT;
+```
+
+- `<hash>`: salida de `shasum -a 256 drizzle/NNNN_nombre.sql`.
+- `<when>`: el campo `when` de esa migración en `drizzle/meta/_journal.json`.
+
+**Orden de un PR con migración:**
+1. Mergear la branch en su rama de integración (no en `main`) y validar en `dev` y `test`.
+2. Aplicar la migración en `production`.
+3. Mergear a `main`.
+4. Verificar el sitio en producción.
+
+Si algo falla después del deploy, lo más rápido es el "Instant Rollback" de Vercel, que devuelve el código anterior sin tocar la base.
+
 ## Scripts disponibles
 
 - `npm run dev`: servidor de desarrollo.
 - `npm run build`: build de producción.
-- `npm run start`: correr build en producción.
+- `npm run start`: correr el build de producción.
 - `npm run lint`: lint con ESLint.
-- `npm run test:e2e`: suite E2E con Playwright contra `.env.test`, en el puerto 3100.
+- `npm run test:e2e`: suite E2E con Playwright (ver "Tests E2E").
 - `npm run db:generate`: generar migraciones con Drizzle.
-- `npm run db:migrate`: aplicar migraciones.
-- `npm run db:studio`: abrir Drizzle Studio.
-- `npm run db:seed:categories`: poblar categorías iniciales.
-- `npm run db:create-author -- <email> <password> [displayName]`: crear autora.
+- `npm run db:migrate`: aplicar migraciones contra `.env.local` (`dev`).
+- `npm run db:studio`: abrir Drizzle Studio contra `.env.local`.
+- `npm run db:seed:categories`: poblar las categorías iniciales.
+- `npm run db:create-author -- <email> <password> [displayName]`: crear una autora.
+- `npm run db:reset-password -- <email> <newPassword>`: cambiar la contraseña de una autora.
+
+Scripts de mantenimiento puntual, que se usaron en migraciones de datos anteriores:
+
+- `npm run db:backfill-cover-images`: marca como portada la primera imagen de las publicaciones que no tienen portada.
+- `npm run db:backfill-content-json`: genera el contenido del editor (`content_json`) a partir del texto plano en las publicaciones antiguas.
+- `npm run db:deduplicate-reactions`: deja una sola reacción por visitante y publicación.
 
 ## Estructura principal
 
-- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/app`: rutas públicas, login y panel de autora.
-- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/features`: lógica por dominio (`reviews`, `comments`, `reactions`, `auth`).
-- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/src/lib`: auth, base de datos y utilidades.
-- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/e2e`: pruebas end-to-end con Playwright.
-- `/home/runner/work/fuera-de-escena-web/fuera-de-escena-web/drizzle`: migraciones SQL.
+- `src/app`: rutas. `(public)` tiene la home, los listados y los detalles, con layout propio. `(author)` tiene el login y el panel.
+- `src/components/site`: header, footer, franjas y contenedor del sitio público.
+- `src/components/ui`: componentes UI base.
+- `src/features`: lógica por dominio (`reviews`, `interviews`, `comments`, `reactions`, `auth`). Cada dominio tiene sus actions, queries, schemas y componentes.
+- `src/lib`: auth, base de datos, utilidades y `site-config.ts` (textos y links del sitio).
+- `drizzle`: migraciones SQL generadas. En `drizzle/rollback` están los rollbacks manuales.
+- `e2e`: pruebas end-to-end con Playwright. En `e2e/support` están los helpers compartidos.
