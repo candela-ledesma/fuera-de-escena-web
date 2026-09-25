@@ -31,6 +31,7 @@ import { TagsInput } from "./tags-input";
 import { TiptapEditor, type TiptapEditorHandle } from "./tiptap-editor";
 import { AutoResizeTitle } from "./auto-resize-title";
 import { useEditCopy } from "./use-edit-copy";
+import { consumeJustAutosaved, markJustAutosaved } from "../autosave-handoff";
 
 const AUTOSAVE_DEBOUNCE_MS = 4000;
 
@@ -214,6 +215,11 @@ export function ReviewForm({
     setValue("contentJson", JSON.stringify(json), { shouldValidate: true });
   }
 
+  // Recién creado por el autosave de /nueva: mantener el aviso de "guardado".
+  useEffect(() => {
+    if (consumeJustAutosaved(reviewId)) setAutosaveState("saved");
+  }, [reviewId]);
+
   // Autosave en el servidor, solo para borradores. Una publicada no se
   // autoguarda (se vería en vivo a medio escribir): usa la copia local.
   useEffect(() => {
@@ -255,6 +261,7 @@ export function ReviewForm({
           setAutosaveState("saved");
 
           if (isFirstSave && !reviewId) {
+            markJustAutosaved(result.id);
             router.replace(`/panel/criticas/${result.slug}`);
           }
         })

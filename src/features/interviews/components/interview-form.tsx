@@ -19,6 +19,7 @@ import { AutoResizeTitle } from "@/features/reviews/components/auto-resize-title
 import { SummaryField } from "@/features/reviews/components/summary-field";
 import { EditCopyBanner } from "@/features/reviews/components/edit-copy-banner";
 import { useEditCopy } from "@/features/reviews/components/use-edit-copy";
+import { consumeJustAutosaved, markJustAutosaved } from "@/features/reviews/autosave-handoff";
 import type { EditCopyFields } from "@/features/reviews/edit-copy";
 import { interviewFormSchema } from "@/features/reviews/schema";
 
@@ -168,6 +169,11 @@ export function InterviewForm({
     setValue("contentJson", JSON.stringify(json), { shouldValidate: true });
   }
 
+  // Recién creado por el autosave de /nueva: mantener el aviso de "guardado".
+  useEffect(() => {
+    if (consumeJustAutosaved(interviewId)) setAutosaveState("saved");
+  }, [interviewId]);
+
   // Autosave en el servidor, solo para borradores. Una publicada no se
   // autoguarda (se vería en vivo a medio escribir): usa la copia local.
   useEffect(() => {
@@ -205,6 +211,7 @@ export function InterviewForm({
           setAutosaveState("saved");
 
           if (isFirstSave && !interviewId) {
+            markJustAutosaved(result.id);
             router.replace(`/panel/entrevistas/${result.slug}`);
           }
         })
