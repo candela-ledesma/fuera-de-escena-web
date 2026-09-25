@@ -57,16 +57,6 @@
   color: var(--foreground);
 }
 
-/*
- * `* { border-color }` (más abajo) no está en una capa y le gana a las
- * utilidades border-* de Tailwind v4. En el sitio público, los bordes con
- * color propio usan el modificador `!` (p. ej. `border-foreground!`).
- *
- * TODO(etapa del panel): mover `* { border-color }` a `@layer base` y sacar
- * los `!` de los bordes del sitio público (rg "border-[a-z-]+!" src). No se
- * hizo en el rediseño de la home porque cambia bordes del panel.
- */
-
 /* Foco visible en acento (el borde #e6d6ce no llega a 3:1). */
 .theme-public :focus-visible {
   outline: 2px solid var(--primary);
@@ -122,8 +112,11 @@ body {
   font-family: var(--font-body), sans-serif;
 }
 
-* {
-  border-color: var(--border);
+/* En la capa base (no suelta): así las utilidades border-* pueden pisarlo. */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 ::selection {
