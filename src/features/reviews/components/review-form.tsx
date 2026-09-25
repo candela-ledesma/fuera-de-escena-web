@@ -134,11 +134,16 @@ export function ReviewForm({
     return trimmed ? trimmed.split(/\s+/).length : 0;
   }, [plainText]);
 
+  // Depende de `state` (objeto nuevo en cada respuesta), no de `state.error`:
+  // dos errores iguales seguidos también tienen que reactivar el autosave.
   useEffect(() => {
     if (state.error) {
+      // La action devolvió un error sin navegar: el envío terminó, así que el
+      // autosave (que se frena mientras hay un envío en curso) vuelve a andar.
+      isSubmittingRef.current = false;
       toast.error(state.error);
     }
-  }, [state.error]);
+  }, [state]);
 
   function handleEditorChange(json: unknown, text: string) {
     setContentJson(json);
