@@ -7,6 +7,7 @@ import { db } from "../src/lib/db/client";
 import { authors, reviews } from "../src/lib/db/schema";
 
 import { loginAsAuthor } from "./support/auth";
+import { waitForServerAction } from "./support/server-actions";
 import { plainTextDoc } from "./support/content";
 
 const INTERVIEW = {
@@ -124,11 +125,12 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
     await test.step("reaccionar a la entrevista publicada", async () => {
       const likeButton = page.getByRole("button", { name: "Me gusta" });
       await expect(likeButton).toBeVisible();
+      const likeSaved = waitForServerAction(page, '"like"');
       await likeButton.click();
       const likeActive = page.getByRole("button", { name: "Me gusta · 1" });
       await expect(likeActive).toBeVisible();
       await expect(likeActive).toHaveAttribute("aria-pressed", "true");
-      await page.waitForTimeout(500);
+      await likeSaved;
       await page.reload();
       await expect(page.getByRole("button", { name: "Me gusta · 1" })).toBeVisible();
 

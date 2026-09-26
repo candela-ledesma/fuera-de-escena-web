@@ -7,6 +7,7 @@ import { db } from "../src/lib/db/client";
 import { authors, categories, comments, reviews } from "../src/lib/db/schema";
 
 import { loginAsAuthor } from "./support/auth";
+import { waitForServerAction } from "./support/server-actions";
 import { plainTextDoc } from "./support/content";
 
 const REVIEW = {
@@ -142,30 +143,33 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       await expect(likeButton).toBeVisible();
       await expect(loveButton).toBeVisible();
 
+      const likeSaved = waitForServerAction(page, '"like"');
       await likeButton.click();
       const likeActive = page.getByRole("button", { name: "Me gusta · 1" });
       await expect(likeActive).toBeVisible();
       await expect(likeActive).toHaveAttribute("aria-pressed", "true");
-      await page.waitForTimeout(500);
+      await likeSaved;
       await page.reload();
       await expect(page.getByRole("button", { name: "Me gusta · 1" })).toBeVisible();
 
       // Elegir otra reacción reemplaza la anterior (modelo exclusivo tipo Facebook).
+      const loveSaved = waitForServerAction(page, '"love"');
       await page.getByRole("button", { name: /^Me encanta/ }).click();
       const loveActive = page.getByRole("button", { name: "Me encanta · 1" });
       await expect(loveActive).toBeVisible();
       await expect(loveActive).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Me gusta" })).toHaveAttribute("aria-pressed", "false");
-      await page.waitForTimeout(500);
+      await loveSaved;
       await page.reload();
       await expect(page.getByRole("button", { name: "Me encanta · 1" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
 
       // Repetir el mismo tipo activo la apaga (toggle off).
+      const loveOffSaved = waitForServerAction(page, '"love"');
       await page.getByRole("button", { name: /^Me encanta/ }).click();
       await expect(page.getByRole("button", { name: "Me encanta" })).toBeVisible();
-      await page.waitForTimeout(500);
+      await loveOffSaved;
       await page.reload();
       await expect(page.getByRole("button", { name: "Me encanta" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Me gusta" })).toBeVisible();
@@ -184,6 +188,10 @@ test.describe("CRUD de críticas (panel de la autora)", () => {
       // networkidle y un retry basado en el estado "Publicando…", ninguno
       // lo resuelve de forma consistente porque la causa no es de timing
       // del cliente sino de sincronización de estado tras la Server Action.
+      // 2026-09-26: el paso de reacciones ya no recarga a ciegas tras 500 ms,
+      // espera la respuesta de la action (el reload podía cortarla). Con
+      // latencia simulada eso no afectó a este paso: si deja de fallar,
+      // revisar la nota de memoria antes de sacar este comentario.
       await page.getByLabel("Tu nombre").fill(COMMENT.authorName);
       await page.getByLabel("Comentario").fill(COMMENT.body);
       await page.getByRole("button", { name: "Publicar comentario" }).click();
@@ -392,24 +400,26 @@ test.describe("Vista pública (sin sesión)", () => {
       await expect(page.getByText(/^0$/)).not.toBeVisible();
       await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
 
+      const wowSaved = waitForServerAction(page, '"wow"');
       await wowButton.click();
       const wowActive = page.getByRole("button", { name: "Me sorprende · 1" });
       await expect(wowActive).toBeVisible();
       await expect(wowActive).toHaveAttribute("aria-pressed", "true");
       await expect(page.getByText("1 persona reaccionó")).toBeVisible();
 
-      await page.waitForTimeout(500);
+      await wowSaved;
       await page.reload();
 
       await expect(page.getByRole("button", { name: "Me sorprende · 1" })).toBeVisible();
       await expect(page.getByText("1 persona reaccionó")).toBeVisible();
 
       // Togglear de nuevo la apaga y vuelve a ocultar el contador y la prueba social.
+      const wowOffSaved = waitForServerAction(page, '"wow"');
       await page.getByRole("button", { name: "Me sorprende · 1" }).click();
       await expect(page.getByRole("button", { name: "Me sorprende" })).toBeVisible();
       await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
 
-      await page.waitForTimeout(500);
+      await wowOffSaved;
       await page.reload();
       await expect(page.getByRole("button", { name: "Me sorprende" })).toBeVisible();
       await expect(page.getByText(/persona(s)? reaccion/)).not.toBeVisible();
@@ -440,8 +450,9 @@ test.describe("Vista pública (sin sesión)", () => {
       .returning({ id: reviews.id, slug: reviews.slug });
 
     try {
+      const firstView = waitForServerAction(page, review.id);
       await page.goto(`/critica/${review.slug}`);
-      await page.waitForTimeout(1000);
+      await firstView;
 
       const [afterFirstVisit] = await db
         .select({ viewCount: reviews.viewCount })
@@ -449,8 +460,9 @@ test.describe("Vista pública (sin sesión)", () => {
         .where(eq(reviews.id, review.id));
       expect(afterFirstVisit.viewCount).toBe(1);
 
+      const secondView = waitForServerAction(page, review.id);
       await page.reload();
-      await page.waitForTimeout(1000);
+      await secondView;
 
       const [afterSecondVisit] = await db
         .select({ viewCount: reviews.viewCount })
