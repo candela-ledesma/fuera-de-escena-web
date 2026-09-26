@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 import { deleteInterviewAction, setInterviewStatusAction } from "../actions";
+import { clearEditCopy } from "@/features/reviews/edit-copy";
 
 type InterviewListItem = {
   id: string;
@@ -128,6 +129,7 @@ function InterviewRow({ interview }: { interview: InterviewListItem }) {
   function handleDelete() {
     startTransition(async () => {
       await deleteInterviewAction(interview.slug);
+      clearEditCopy("entrevista", interview.id);
       toast.success("Entrevista borrada.");
     });
   }

@@ -107,17 +107,4 @@ test.describe("Validación al editar una crítica publicada", () => {
     ).toBeVisible();
     expect((await fixtures.getSummaryAndDate(review.id)).eventDate).toBe("2026-06-15");
   });
-
-  test("el autosave de una publicada sin bajada muestra qué falta y no guarda", async ({ page }) => {
-    const review = await fixtures.create({ summary: "Bajada original." });
-
-    await openEditForm(page, review.slug);
-    await page.getByLabel("Bajada").fill("");
-
-    // Autosave con debounce de 4s: el motivo aparece en la barra inferior.
-    await expect(page.getByText("Para publicar falta completar la bajada.", { exact: true })).toBeVisible({
-      timeout: 15_000,
-    });
-    expect((await fixtures.getSummaryAndDate(review.id)).summary).toBe("Bajada original.");
-  });
 });

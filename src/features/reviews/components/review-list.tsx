@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 
 import { deleteReviewAction, setReviewStatusAction } from "../actions";
+import { clearEditCopy } from "../edit-copy";
 
 type ReviewListItem = {
   id: string;
@@ -131,6 +132,7 @@ function ReviewRow({ review }: { review: ReviewListItem }) {
   function handleDelete() {
     startTransition(async () => {
       await deleteReviewAction(review.slug);
+      clearEditCopy("critica", review.id);
       toast.success("Crítica borrada.");
     });
   }

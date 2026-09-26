@@ -140,13 +140,17 @@ function Toolbar({ editor }: { editor: Editor }) {
 
 export type TiptapEditorHandle = {
   focus: () => void;
+  /** Reemplaza el contenido y emite onChange, como si lo hubiera escrito el usuario. */
+  setContent: (json: unknown) => void;
 };
 
 export const TiptapEditor = forwardRef<TiptapEditorHandle, {
   content: unknown;
   onChange: (json: unknown, plainText: string) => void;
+  /** Documento normalizado por el editor al crearse (punto de partida para comparar cambios). */
+  onReady?: (json: unknown, plainText: string) => void;
   ariaLabel?: string;
-}>(function TiptapEditor({ content, onChange, ariaLabel = "Texto de la crítica" }, ref) {
+}>(function TiptapEditor({ content, onChange, onReady, ariaLabel = "Texto de la crítica" }, ref) {
   const editor = useEditor({
     extensions: editorExtensions,
     content: content as object,
@@ -157,6 +161,9 @@ export const TiptapEditor = forwardRef<TiptapEditorHandle, {
         "aria-label": ariaLabel,
         class: "prose-editor pb-16 focus:outline-none",
       },
+    },
+    onCreate: ({ editor }) => {
+      onReady?.(editor.getJSON(), editor.getText());
     },
     onUpdate: ({ editor }) => {
       onChange(editor.getJSON(), editor.getText());
@@ -173,6 +180,9 @@ export const TiptapEditor = forwardRef<TiptapEditorHandle, {
     ref,
     () => ({
       focus: () => editor?.commands.focus("start"),
+      setContent: (json: unknown) => {
+        editor?.commands.setContent(json as object, { emitUpdate: true });
+      },
     }),
     [editor],
   );

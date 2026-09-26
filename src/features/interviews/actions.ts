@@ -178,7 +178,8 @@ export async function updateInterviewAction(
   revalidatePath("/panel");
   revalidatePath("/");
   revalidatePath(`/entrevista/${slug}`);
-  redirect("/panel?tab=entrevistas&saved=updated");
+  // El id le permite al panel borrar la copia local de cambios (solo si el guardado salió bien).
+  redirect(`/panel?tab=entrevistas&saved=updated&id=${existing.id}`);
 }
 
 export async function deleteInterviewAction(interviewSlug: string): Promise<void> {
