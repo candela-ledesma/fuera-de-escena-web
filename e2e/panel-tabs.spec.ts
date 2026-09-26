@@ -30,6 +30,19 @@ test.describe("Tabs del panel", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Entrevistas" })).toBeVisible();
   });
 
+  test("un ?tab= inválido cae en críticas sin romper", async ({ page }) => {
+    for (const query of ["?tab=xyz", "?tab=", "?tab=ENTREVISTAS", "?tab=criticas%00", "?tab=a&tab=b"]) {
+      const response = await page.goto(`/panel${query}`);
+
+      expect(response?.status(), query).toBe(200);
+      await expect(panelTabs(page).getByRole("link", { name: "Críticas teatrales" })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await expect(page.getByRole("heading", { level: 1, name: "Críticas" })).toBeVisible();
+    }
+  });
+
   test("solo se muestra la lista de la tab activa", async ({ page }) => {
     const review = await fixtures.create({ status: "draft" });
     const interview = await fixtures.create({ kind: "entrevista", status: "draft" });
