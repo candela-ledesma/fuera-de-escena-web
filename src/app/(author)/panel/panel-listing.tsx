@@ -1,17 +1,11 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { DashboardStats } from "@/features/reviews/components/dashboard-stats";
 import { ReviewList } from "@/features/reviews/components/review-list";
 import { InterviewList } from "@/features/interviews/components/interview-list";
-import { clearEditCopy } from "@/features/reviews/edit-copy";
 
-import { PanelTabs, type PanelTab } from "./panel-tabs";
+import { PanelTabs } from "./panel-tabs";
 
 type Stats = {
   total: number;
@@ -21,84 +15,44 @@ type Stats = {
   mostViewed: { title: string; slug: string; viewCount: number } | null;
 };
 
-const SAVED_MESSAGES: Record<PanelTab, Record<string, string>> = {
-  criticas: { created: "Crítica creada.", updated: "Cambios guardados." },
-  entrevistas: { created: "Entrevista creada.", updated: "Cambios guardados." },
-};
+type Props =
+  | { tab: "criticas"; stats: Stats; items: Parameters<typeof ReviewList>[0]["reviews"] }
+  | { tab: "entrevistas"; stats: Stats; items: Parameters<typeof InterviewList>[0]["interviews"] };
 
-export function PanelListing({
-  reviewStats,
-  reviews,
-  interviewStats,
-  interviews,
-}: {
-  reviewStats: Stats;
-  reviews: Parameters<typeof ReviewList>[0]["reviews"];
-  interviewStats: Stats;
-  interviews: Parameters<typeof InterviewList>[0]["interviews"];
-}) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const initialTab: PanelTab = searchParams.get("tab") === "entrevistas" ? "entrevistas" : "criticas";
-  const [active, setActive] = useState<PanelTab>(initialTab);
-
-  useEffect(() => {
-    const saved = searchParams.get("saved");
-    if (!saved) return;
-
-    const tabFromUrl: PanelTab = searchParams.get("tab") === "entrevistas" ? "entrevistas" : "criticas";
-    const savedId = searchParams.get("id");
-    if (saved === "updated" && savedId) {
-      clearEditCopy(tabFromUrl === "entrevistas" ? "entrevista" : "critica", savedId);
-    }
-    toast.success(SAVED_MESSAGES[tabFromUrl][saved] ?? "Guardado.");
-    router.replace(tabFromUrl === "entrevistas" ? "/panel?tab=entrevistas" : "/panel", { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  function handleTabChange(tab: PanelTab) {
-    setActive(tab);
-    router.replace(tab === "entrevistas" ? "/panel?tab=entrevistas" : "/panel", { scroll: false });
-  }
-
-  const isCriticas = active === "criticas";
+export function PanelListing(props: Props) {
+  const isCriticas = props.tab === "criticas";
 
   return (
     <>
       <div className="-mx-6">
-        <PanelTabs active={active} onChange={handleTabChange} />
+        <PanelTabs active={props.tab} />
       </div>
 
       <div className="space-y-6 pt-8">
         <div className="flex items-center justify-between">
           <h1 className="font-display text-3xl">{isCriticas ? "Críticas" : "Entrevistas"}</h1>
-          {isCriticas ? (
-            reviews.length > 0 ? (
-              <Button asChild>
-                <Link href="/panel/criticas/nueva">Escribir una crítica</Link>
-              </Button>
-            ) : null
-          ) : interviews.length > 0 ? (
+          {props.items.length > 0 ? (
             <Button asChild>
-              <Link href="/panel/entrevistas/nueva">Escribir una entrevista</Link>
+              <Link href={isCriticas ? "/panel/criticas/nueva" : "/panel/entrevistas/nueva"}>
+                {isCriticas ? "Escribir una crítica" : "Escribir una entrevista"}
+              </Link>
             </Button>
           ) : null}
         </div>
 
-        {isCriticas ? (
+        {props.tab === "criticas" ? (
           <>
-            <DashboardStats {...reviewStats} />
-            <ReviewList reviews={reviews} />
+            <DashboardStats {...props.stats} />
+            <ReviewList reviews={props.items} />
           </>
         ) : (
           <>
             <DashboardStats
-              {...interviewStats}
+              {...props.stats}
               totalLabel="Entrevistas"
               editHref={(slug) => `/panel/entrevistas/${slug}`}
             />
-            <InterviewList interviews={interviews} />
+            <InterviewList interviews={props.items} />
           </>
         )}
       </div>

@@ -58,7 +58,7 @@ test.describe("CRUD de entrevistas (panel de la autora)", () => {
   test("crea, edita, publica, despublica y borra una entrevista", async ({ page }) => {
     await test.step("crear la entrevista desde el tab Entrevistas del panel", async () => {
       await page.goto("/panel");
-      await page.getByRole("button", { name: "Entrevistas" }).click();
+      await page.getByRole("navigation", { name: "Secciones del panel" }).getByRole("link", { name: "Entrevistas" }).click();
       await expect(page).toHaveURL(/\/panel\?tab=entrevistas$/);
 
       await page.getByRole("link", { name: "Escribir una entrevista" }).click();
