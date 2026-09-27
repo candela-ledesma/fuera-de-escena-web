@@ -2,13 +2,15 @@ import { eq } from "drizzle-orm";
 import { test, expect, type Page } from "@playwright/test";
 
 import { db } from "../src/lib/db/client";
+import { AUTOSAVE_DEBOUNCE_MS } from "../src/features/reviews/form-constants";
 import { reviews } from "../src/lib/db/schema";
 
 import { loginAsAuthor } from "./support/auth";
 import { ContentFixtures } from "./support/content";
+import { openEditForm } from "./support/panel";
 
-// Autosave del servidor (borradores): 4 s. Copia local (publicadas): 300 ms.
-const PAST_AUTOSAVE_MS = 5_000;
+// Pasado el debounce del autosave del servidor (borradores) y el de la copia local (300 ms).
+const PAST_AUTOSAVE_MS = AUTOSAVE_DEBOUNCE_MS + 1_000;
 const PAST_COPY_WRITE_MS = 1_000;
 
 const fixtures = new ContentFixtures();
@@ -19,7 +21,6 @@ test.afterEach(async () => {
 
 type Kind = "critica" | "entrevista";
 
-const PANEL_PATH: Record<Kind, string> = { critica: "/panel/criticas", entrevista: "/panel/entrevistas" };
 const EDITOR_NAME: Record<Kind, string> = { critica: "Texto de la crítica", entrevista: "Texto de la entrevista" };
 const TITLE_LABEL: Record<Kind, string> = { critica: "Título de la obra", entrevista: "Título de la entrevista" };
 
@@ -37,12 +38,6 @@ function trackServerActions(page: Page) {
     reset: () => posts.splice(0, posts.length),
     count: () => posts.length,
   };
-}
-
-async function openEditForm(page: Page, kind: Kind, slug: string) {
-  await page.goto(`${PANEL_PATH[kind]}/${slug}`);
-  // El editor se monta solo en el cliente: si es visible, el form está hidratado.
-  await expect(page.getByRole("textbox", { name: EDITOR_NAME[kind] })).toBeVisible();
 }
 
 async function readRow(id: string) {

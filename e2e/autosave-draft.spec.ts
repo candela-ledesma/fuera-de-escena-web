@@ -2,12 +2,11 @@ import { eq } from "drizzle-orm";
 import { test, expect } from "@playwright/test";
 
 import { db } from "../src/lib/db/client";
+import { AUTOSAVE_DEBOUNCE_MS } from "../src/features/reviews/form-constants";
 import { reviews } from "../src/lib/db/schema";
 
 import { loginAsAuthor } from "./support/auth";
 import { ContentFixtures } from "./support/content";
-
-const AUTOSAVE_DEBOUNCE_MS = 4000;
 
 const fixtures = new ContentFixtures();
 

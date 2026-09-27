@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 
 import { loginAsAuthor } from "./support/auth";
 import { ContentFixtures } from "./support/content";
+import { openEditForm } from "./support/panel";
 
 const fixtures = new ContentFixtures();
 
@@ -20,16 +21,6 @@ async function publishFromPanel(page: Page, title: string, kind: "critica" | "en
   await page.getByRole("menuitem", { name: "Publicar" }).click();
 
   return row;
-}
-
-/**
- * Abre el formulario de edición y espera a que esté hidratado: si se escribe
- * antes, la hidratación restaura el valor original y el cambio se pierde.
- * El editor se monta solo en el cliente, en el mismo árbol que el form.
- */
-async function openEditForm(page: Page, slug: string) {
-  await page.goto(`/panel/criticas/${slug}`);
-  await expect(page.getByRole("textbox", { name: "Texto de la crítica" })).toBeVisible();
 }
 
 test.describe("Validación al publicar desde el panel", () => {
@@ -87,7 +78,7 @@ test.describe("Validación al editar una crítica publicada", () => {
   test("Guardar cambios (en vivo) sin bajada muestra qué falta y no guarda", async ({ page }) => {
     const review = await fixtures.create({ summary: "Bajada original." });
 
-    await openEditForm(page, review.slug);
+    await openEditForm(page, "critica", review.slug);
     await page.getByLabel("Bajada").fill("");
     await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
 
@@ -98,7 +89,7 @@ test.describe("Validación al editar una crítica publicada", () => {
   test("Guardar cambios (en vivo) sin fecha muestra qué falta y no guarda", async ({ page }) => {
     const review = await fixtures.create({ eventDate: "2026-06-15" });
 
-    await openEditForm(page, review.slug);
+    await openEditForm(page, "critica", review.slug);
     await page.locator("#eventDate").fill("");
     await page.getByRole("button", { name: "Guardar cambios (en vivo)" }).click();
 
