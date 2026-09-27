@@ -1,5 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { formatRunId } from "./e2e/support/artifacts";
 import { assertTestBlobStore, assertTestDatabase } from "./e2e/support/db-guard";
 
 // La suite escribe fixtures en la base: corre contra el branch `test` de Neon
@@ -9,17 +10,25 @@ import { assertTestBlobStore, assertTestDatabase } from "./e2e/support/db-guard"
 assertTestDatabase();
 assertTestBlobStore();
 
+// Un id por corrida, calculado una sola vez en el proceso principal: los
+// workers vuelven a cargar esta config y heredan la variable.
+process.env.E2E_RUN_ID ??= formatRunId(new Date());
+const RUN_ID = process.env.E2E_RUN_ID;
+
 const PORT = 3100;
 const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Helpers y sus tests unitarios (npm run test:unit), no specs de Playwright.
+  testIgnore: /\/support\//,
+  outputDir: `test-results/${RUN_ID}`,
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   retries: 1,
   timeout: 60_000,
-  reporter: "list",
+  reporter: [["list"], ["html", { outputFolder: `playwright-report/${RUN_ID}`, open: "never" }]],
   use: {
     baseURL: BASE_URL,
     trace: "retain-on-failure",
@@ -28,7 +37,8 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /home-states\.spec\.ts/,
+      // Reemplaza el testIgnore global: hay que repetir lo de support/.
+      testIgnore: [/home-states\.spec\.ts/, /\/support\//],
     },
     {
       // Estados globales de la home (0 críticas, 1 crítica, sin entrevistas):
