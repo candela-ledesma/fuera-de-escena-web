@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import type { ReviewFormState } from "../actions";
 import { saveDraftAction } from "../actions";
 import type { EditCopyFields } from "../edit-copy";
+import { AUTOSAVE_DEBOUNCE_MS, EMPTY_DOC } from "../form-constants";
 import { reviewFormSchema } from "../schema";
 import { EditCopyBanner } from "./edit-copy-banner";
 import { ImageUploader, type ExistingImage } from "./image-uploader";
@@ -32,10 +33,6 @@ import { TiptapEditor, type TiptapEditorHandle } from "./tiptap-editor";
 import { AutoResizeTitle } from "./auto-resize-title";
 import { useEditCopy } from "./use-edit-copy";
 import { consumeJustAutosaved, markJustAutosaved } from "../autosave-handoff";
-
-const AUTOSAVE_DEBOUNCE_MS = 4000;
-
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", content: [] }] };
 
 type Category = { id: string; name: string };
 

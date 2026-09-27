@@ -20,7 +20,7 @@ export type EditCopy = {
 };
 
 // Por tipo e id (no por slug, que puede cambiar).
-export function editCopyKey(kind: EditCopyKind, id: string): string {
+function editCopyKey(kind: EditCopyKind, id: string): string {
   return `fde:edit-copy:${kind}:${id}`;
 }
 
