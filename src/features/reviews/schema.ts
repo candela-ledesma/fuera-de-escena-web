@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 export const MAX_REVIEW_IMAGES = 2;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -13,6 +13,27 @@ const summarySchema = z
   .max(MAX_SUMMARY_LENGTH, `La bajada no puede superar los ${MAX_SUMMARY_LENGTH} caracteres.`)
   .optional();
 
+export const CATEGORY_REQUIRED_MESSAGE = "Elegí una categoría.";
+export const RATING_REQUIRED_MESSAGE = "Elegí un puntaje de 1 a 5.";
+export const RATING_RANGE_MESSAGE = "El puntaje va de 1 a 5.";
+
+// Un campo vacío llega como undefined (cliente) o "" (FormData del servidor):
+// los dos son "falta elegir", no un error de tipo ni de rango. Sin esto,
+// z.coerce convierte "" en 0 y el mensaje sería el de rango.
+const categoryIdSchema = z
+  .string({ error: CATEGORY_REQUIRED_MESSAGE })
+  .trim()
+  .min(1, CATEGORY_REQUIRED_MESSAGE);
+
+const ratingSchema = z.preprocess(
+  (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
+  z
+    .number({ error: RATING_REQUIRED_MESSAGE })
+    .int(RATING_RANGE_MESSAGE)
+    .min(1, RATING_RANGE_MESSAGE)
+    .max(5, RATING_RANGE_MESSAGE),
+);
+
 export const reviewContentSchema = z.object({
   type: z.literal("doc"),
   content: z.array(z.any()),
@@ -23,8 +44,8 @@ export const reviewFormSchema = z.object({
   summary: summarySchema,
   venue: z.string().trim().max(200).optional(),
   eventDate: z.string().trim().optional(),
-  categoryId: z.string().trim().min(1, "Elegí una categoría."),
-  rating: z.coerce.number().int().min(1, "El puntaje va de 1 a 5.").max(5, "El puntaje va de 1 a 5."),
+  categoryId: categoryIdSchema,
+  rating: ratingSchema,
   contentJson: z
     .string()
     .trim()

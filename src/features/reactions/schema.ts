@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 export const ANON_ID_COOKIE = "anon_id";
 
