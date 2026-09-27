@@ -21,11 +21,8 @@ import { EditCopyBanner } from "@/features/reviews/components/edit-copy-banner";
 import { useEditCopy } from "@/features/reviews/components/use-edit-copy";
 import { consumeJustAutosaved, markJustAutosaved } from "@/features/reviews/autosave-handoff";
 import type { EditCopyFields } from "@/features/reviews/edit-copy";
+import { AUTOSAVE_DEBOUNCE_MS, EMPTY_DOC } from "@/features/reviews/form-constants";
 import { interviewFormSchema } from "@/features/reviews/schema";
-
-const AUTOSAVE_DEBOUNCE_MS = 4000;
-
-const EMPTY_DOC = { type: "doc", content: [{ type: "paragraph", content: [] }] };
 
 type InterviewDefaults = {
   title: string;

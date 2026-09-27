@@ -5,8 +5,6 @@ export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const MAX_SUMMARY_LENGTH = 200;
 
-export const reviewKindSchema = z.enum(["critica", "entrevista"]).default("critica");
-
 const summarySchema = z
   .string()
   .trim()
@@ -34,7 +32,7 @@ const ratingSchema = z.preprocess(
     .max(5, RATING_RANGE_MESSAGE),
 );
 
-export const reviewContentSchema = z.object({
+const reviewContentSchema = z.object({
   type: z.literal("doc"),
   content: z.array(z.any()),
 });
@@ -177,7 +175,7 @@ export const interviewDraftFormSchema = z.object({
     ),
 });
 
-type ReviewKind = z.infer<typeof reviewKindSchema>;
+type ReviewKind = "critica" | "entrevista";
 
 /**
  * Requisitos para que una crítica/entrevista esté publicada. Los borradores
