@@ -11,8 +11,12 @@ export default defineConfig([
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   globalIgnores([
     ".next/**",
+    ".vercel/**",
     "out/**",
     "build/**",
+    "coverage/**",
+    "playwright-report/**",
+    "test-results/**",
     "next-env.d.ts",
   ]),
 ]);
