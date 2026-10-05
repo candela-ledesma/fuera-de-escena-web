@@ -36,7 +36,7 @@ export function ReviewCard({
       data-testid="review-card"
       className="group relative flex flex-col rounded-[4px] outline-offset-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-primary"
     >
-      <CoverImage src={item.coverImageUrl} alt={item.coverImageAlt ?? ""} sizes={CARD_IMAGE_SIZES} />
+      <CoverImage src={item.coverImageUrl} alt={item.coverImageAlt ?? ""} sizes={CARD_IMAGE_SIZES} aspect="square" />
 
       {kicker ? (
         <p className="mt-5 text-[0.6875rem] font-medium uppercase tracking-[0.2em] text-muted">{kicker}</p>

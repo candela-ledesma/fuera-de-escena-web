@@ -18,6 +18,7 @@ export function ReviewHero({ review }: { review: PublishedReviewItem }) {
         alt={review.coverImageAlt ?? ""}
         sizes="(max-width: 1023px) 100vw, 680px"
         priority
+        aspect="square"
         className="lg:col-span-7"
       />
 
