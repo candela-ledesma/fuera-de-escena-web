@@ -42,7 +42,7 @@ function trackServerActions(page: Page) {
 
 async function readRow(id: string) {
   const [row] = await db
-    .select({ title: reviews.title, updatedAt: reviews.updatedAt })
+    .select({ title: reviews.title, body: reviews.body, status: reviews.status, updatedAt: reviews.updatedAt })
     .from(reviews)
     .where(eq(reviews.id, id));
   return row;
@@ -79,6 +79,26 @@ for (const kind of ["critica", "entrevista"] as const) {
   const noun = kind === "critica" ? "crítica" : "entrevista";
 
   test.describe(`Editar una ${noun} publicada`, () => {
+    for (const invalidTitle of ["", "Sin título"]) {
+      test(`rechaza autosave con título ${invalidTitle ? "placeholder" : "vacío"} sin cambiar la publicación`, async ({
+        page,
+      }) => {
+        const item = await fixtures.create({ kind });
+        const before = await readRow(item.id);
+
+        await openEditForm(page, kind, item.slug);
+        await page.getByLabel(TITLE_LABEL[kind]).fill(invalidTitle);
+        await page.getByRole("textbox", { name: EDITOR_NAME[kind] }).click();
+        await page.keyboard.insertText(" Cambio que no debe autoguardarse");
+        await page.clock.runFor(PAST_AUTOSAVE_MS);
+
+        const after = await readRow(item.id);
+        expect(after.title).toBe(before.title);
+        expect(after.body).toBe(before.body);
+        expect(after.status).toBe("published");
+      });
+    }
+
     test("escribir no guarda en el servidor ni cambia el sitio público", async ({ page }) => {
       const item = await fixtures.create({ kind });
       const actions = trackServerActions(page);

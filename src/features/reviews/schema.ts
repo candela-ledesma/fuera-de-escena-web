@@ -4,6 +4,25 @@ export const MAX_REVIEW_IMAGES = 2;
 export const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const MAX_SUMMARY_LENGTH = 200;
+export const PLACEHOLDER_TITLE = "Sin título";
+
+export function isPlaceholderTitle(value: string | null | undefined): boolean {
+  const normalize = (title: string) =>
+    title
+      .trim()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLocaleLowerCase();
+
+  return value !== undefined && value !== null && normalize(value) === normalize(PLACEHOLDER_TITLE);
+}
+
+const titleSchema = z
+  .string()
+  .trim()
+  .min(1, "El título es obligatorio.")
+  .max(200)
+  .refine((value) => !isPlaceholderTitle(value), "El título debe ser real.");
 
 const summarySchema = z
   .string()
@@ -38,7 +57,7 @@ const reviewContentSchema = z.object({
 });
 
 export const reviewFormSchema = z.object({
-  title: z.string().trim().min(1, "El título es obligatorio.").max(200),
+  title: titleSchema,
   summary: summarySchema,
   venue: z.string().trim().max(200).optional(),
   eventDate: z.string().trim().optional(),
@@ -111,7 +130,7 @@ export const draftFormSchema = z.object({
 });
 
 export const interviewFormSchema = z.object({
-  title: z.string().trim().min(1, "El título es obligatorio.").max(200),
+  title: titleSchema,
   summary: summarySchema,
   contentJson: z
     .string()
@@ -204,4 +223,9 @@ export function slugify(value: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+export function normalizeDraftTitle(value: string | null | undefined): string {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : PLACEHOLDER_TITLE;
 }
