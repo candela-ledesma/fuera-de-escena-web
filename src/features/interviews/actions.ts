@@ -21,7 +21,13 @@ import {
   updateReview,
   updateReviewDraftFields,
 } from "@/features/reviews/queries";
-import { getPublishError, interviewDraftFormSchema, interviewFormSchema } from "@/features/reviews/schema";
+import {
+  getPublishError,
+  interviewDraftFormSchema,
+  interviewFormSchema,
+  isPlaceholderTitle,
+  normalizeDraftTitle,
+} from "@/features/reviews/schema";
 
 export type InterviewFormState = {
   error?: string;
@@ -211,6 +217,9 @@ export async function setInterviewStatusAction(
   }
 
   if (status === "published") {
+    if (isPlaceholderTitle(existing.title) || !existing.title?.trim()) {
+      return { error: "Para publicar falta completar el título." };
+    }
     const publishError = getPublishError("entrevista", existing);
     if (publishError) return { error: publishError };
   }
@@ -274,6 +283,9 @@ export async function saveInterviewDraftAction(
 
     // El autosave también corre sobre entrevistas publicadas: no puede dejarlas incompletas.
     if (existing.status === "published") {
+      if (isPlaceholderTitle(title) || !title?.trim()) {
+        return { error: "No se pudo autoguardar: completá un título real antes de seguir editando esta publicación." };
+      }
       const publishError = getPublishError("entrevista", { summary, eventDate: null });
       if (publishError) return { error: publishError };
     }
@@ -295,13 +307,14 @@ export async function saveInterviewDraftAction(
     return { id: updated.id, slug: updated.slug, savedAt: updated.updatedAt.toISOString() };
   }
 
-  const slug = await resolveUniqueSlug(title || "sin-titulo");
+  const draftTitle = normalizeDraftTitle(title);
+  const slug = await resolveUniqueSlug(draftTitle);
   const tagIds = await resolveTagIds(tags);
 
   const created = await insertReview({
     authorId,
     kind: "entrevista",
-    title: title || "Sin título",
+    title: draftTitle,
     summary: summary || null,
     venue: null,
     eventDate: null,

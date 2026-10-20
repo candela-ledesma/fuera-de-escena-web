@@ -7,6 +7,10 @@ import {
   CATEGORY_REQUIRED_MESSAGE,
   RATING_RANGE_MESSAGE,
   RATING_REQUIRED_MESSAGE,
+  PLACEHOLDER_TITLE,
+  interviewFormSchema,
+  isPlaceholderTitle,
+  normalizeDraftTitle,
   reviewFormSchema,
 } from "./schema";
 
@@ -70,6 +74,33 @@ describe("Mensajes por defecto", () => {
     for (const issue of result.error!.issues) {
       assert.doesNotMatch(issue.message, /Invalid input/);
       assert.match(issue.message, /Entrada inválida/);
+    }
+  });
+
+  describe("Título de borrador", () => {
+    it("normaliza valores vacíos al placeholder compartido", () => {
+      assert.equal(normalizeDraftTitle(undefined), PLACEHOLDER_TITLE);
+      assert.equal(normalizeDraftTitle("  "), PLACEHOLDER_TITLE);
+      assert.equal(normalizeDraftTitle("Título real"), "Título real");
+    });
+
+    it("reconoce el placeholder sin distinguir mayúsculas ni espacios", () => {
+      assert.equal(isPlaceholderTitle(" Sin TÍTULO "), true);
+      assert.equal(isPlaceholderTitle("sin titulo"), true);
+      assert.equal(isPlaceholderTitle(" SIN TITULO "), true);
+      assert.equal(isPlaceholderTitle("Título real"), false);
+    });
+
+    for (const schema of [reviewFormSchema, interviewFormSchema]) {
+      it("rechaza el placeholder en el guardado manual", () => {
+        const result = schema.safeParse({
+          ...VALID,
+          title: "Sin título",
+          ...(schema === interviewFormSchema ? {} : { eventDate: "2026-10-19" }),
+        });
+        assert.equal(result.success, false);
+        assert.match(result.error!.issues[0]?.message ?? "", /título/i);
+      });
     }
   });
 });

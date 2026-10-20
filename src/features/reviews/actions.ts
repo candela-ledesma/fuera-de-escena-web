@@ -10,7 +10,13 @@ import { deleteOwnBlobs } from "@/lib/blob";
 import { db } from "@/lib/db/client";
 
 import { resolveFinalImages, resolveTagIds, resolveUniqueSlug } from "./action-helpers";
-import { draftFormSchema, getPublishError, reviewFormSchema } from "./schema";
+import {
+  draftFormSchema,
+  getPublishError,
+  isPlaceholderTitle,
+  normalizeDraftTitle,
+  reviewFormSchema,
+} from "./schema";
 import { validateAndNormalizeContent } from "./content-validation";
 import {
   deleteReview,
@@ -223,6 +229,9 @@ export async function setReviewStatusAction(
   }
 
   if (status === "published") {
+    if (isPlaceholderTitle(existing.title) || !existing.title?.trim()) {
+      return { error: "Para publicar falta completar el título." };
+    }
     const publishError = getPublishError("critica", existing);
     if (publishError) return { error: publishError };
   }
@@ -302,6 +311,9 @@ export async function saveDraftAction(
 
     // El autosave también corre sobre críticas publicadas: no puede dejarlas incompletas.
     if (existing.status === "published") {
+      if (isPlaceholderTitle(title) || !title?.trim()) {
+        return { error: "No se pudo autoguardar: completá un título real antes de seguir editando esta publicación." };
+      }
       const publishError = getPublishError("critica", fields);
       if (publishError) return { error: publishError };
     }
@@ -318,13 +330,14 @@ export async function saveDraftAction(
     return { id: updated.id, slug: updated.slug, savedAt: updated.updatedAt.toISOString() };
   }
 
-  const slug = await resolveUniqueSlug(title || "sin-titulo");
+  const draftTitle = normalizeDraftTitle(title);
+  const slug = await resolveUniqueSlug(draftTitle);
   const tagIds = await resolveTagIds(tags);
 
   const created = await insertReview({
     authorId,
     kind: "critica",
-    title: title || "Sin título",
+    title: draftTitle,
     summary: fields.summary,
     venue: fields.venue,
     eventDate: fields.eventDate,

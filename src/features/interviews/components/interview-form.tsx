@@ -71,8 +71,10 @@ export function InterviewForm({
   const formRef = useRef<HTMLFormElement>(null);
   const editorRef = useRef<TiptapEditorHandle>(null);
   const draftIdRef = useRef<string | null>(interviewId ?? null);
+  const failedAutosaveRef = useRef<string | null>(null);
   const isSubmittingRef = useRef(false);
   const [autosaveState, setAutosaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [contentJson, setContentJson] = useState<unknown>(defaults.contentJson ?? EMPTY_DOC);
   const [plainText, setPlainText] = useState("");
   // Valores al abrir, con el cuerpo ya normalizado por el editor. Null hasta que
@@ -177,6 +179,7 @@ export function InterviewForm({
     if (!originalFields || isPublished) return;
     // Sin cambios desde lo último guardado: tampoco se guarda al abrir.
     if (currentFieldsKey === lastSavedRef.current) return;
+    if (currentFieldsKey === failedAutosaveRef.current) return;
 
     const hasContent = Boolean(title?.trim() || plainText.trim());
     if (!hasContent) return;
@@ -198,14 +201,18 @@ export function InterviewForm({
           if (isSubmittingRef.current) return;
 
           if ("error" in result) {
+            failedAutosaveRef.current = snapshot;
             setAutosaveState("error");
+            setAutosaveError(result.error);
             return;
           }
 
           const isFirstSave = draftIdRef.current === null;
           draftIdRef.current = result.id;
           lastSavedRef.current = snapshot;
+          failedAutosaveRef.current = null;
           setAutosaveState("saved");
+          setAutosaveError(null);
 
           if (isFirstSave && !interviewId) {
             markJustAutosaved(result.id);
@@ -213,7 +220,11 @@ export function InterviewForm({
           }
         })
         .catch(() => {
-          if (!isSubmittingRef.current) setAutosaveState("error");
+          if (!isSubmittingRef.current) {
+            failedAutosaveRef.current = snapshot;
+            setAutosaveState("error");
+            setAutosaveError("No se pudo guardar el borrador.");
+          }
         });
     }, AUTOSAVE_DEBOUNCE_MS);
 
@@ -346,7 +357,9 @@ export function InterviewForm({
               <>
                 {autosaveState === "saving" ? "Guardando…" : null}
                 {autosaveState === "saved" ? "Guardado hace un momento" : null}
-                {autosaveState === "error" ? "No se pudo guardar el borrador. Reintentando…" : null}
+                {autosaveState === "error"
+                  ? (autosaveError ?? "No se pudo guardar el borrador.")
+                  : null}
               </>
             )}
           </span>
